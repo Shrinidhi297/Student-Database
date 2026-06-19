@@ -13,6 +13,7 @@ import { ScrollDemoSection } from '@/components/scroll-demo-section';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
 import { TextReveal } from '@/components/ui/cascade-text';
+import { AnimatedText } from '@/components/ui/animated-shiny-text';
 
 const features = [
   {
@@ -146,19 +147,23 @@ export function LandingPage() {
               <Sparkles className="h-3.5 w-3.5 text-primary" />
               Built for secure student records and a calm, focused workflow.
             </div>
-            <h1
-              className="max-w-4xl text-5xl font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl animate-fade-up-slow text-gradient"
+            <AnimatedText
+              text="AI-powered student database tracking for teams that need clarity."
+              gradientColors="linear-gradient(90deg, hsl(253,83%,66%), hsl(270,80%,70%), hsl(230,80%,70%), hsl(253,83%,66%))"
+              gradientAnimationDuration={3}
+              hoverEffect
+              className="max-w-4xl justify-start p-0 animate-fade-up-slow"
+              textClassName="text-left text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-tight p-0"
               style={{ animationDelay: '0.15s' }}
-            >
-              AI-powered student database tracking for teams that need clarity.
-            </h1>
-            <p
-              className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground animate-fade-up"
+            />
+            <AnimatedText
+              text="Scholar combines authenticated record keeping, live dashboard insights, AI-powered natural language search, and a streamlined add/edit/delete flow so staff can manage student data with less friction."
+              gradientColors="linear-gradient(90deg, hsl(226,18%,70%), hsl(226,10%,60%), hsl(226,18%,70%))"
+              gradientAnimationDuration={4}
+              className="max-w-2xl justify-start p-0 mt-6 animate-fade-up"
+              textClassName="text-left text-lg leading-8 font-normal p-0 m-0"
               style={{ animationDelay: '0.25s' }}
-            >
-              Scholar combines authenticated record keeping, live dashboard insights, AI-powered natural language search,
-              and a streamlined add/edit/delete flow so staff can manage student data with less friction.
-            </p>
+            />
             <div
               className="mt-8 flex flex-wrap gap-3 animate-fade-up"
               style={{ animationDelay: '0.35s' }}
