@@ -156,14 +156,6 @@ export function LandingPage() {
               textClassName="text-left text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-tight p-0"
               style={{ animationDelay: '0.15s' }}
             />
-            <AnimatedText
-              text="Scholar combines authenticated record keeping, live dashboard insights, AI-powered natural language search, and a streamlined add/edit/delete flow so staff can manage student data with less friction."
-              gradientColors="linear-gradient(90deg, hsl(226,18%,70%), hsl(226,10%,60%), hsl(226,18%,70%))"
-              gradientAnimationDuration={4}
-              className="max-w-2xl justify-start p-0 mt-6 animate-fade-up"
-              textClassName="text-left text-lg leading-8 font-normal p-0 m-0"
-              style={{ animationDelay: '0.25s' }}
-            />
             <div
               className="mt-8 flex flex-wrap gap-3 animate-fade-up"
               style={{ animationDelay: '0.35s' }}

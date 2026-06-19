@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState, useCallback } from 'react';
+import { useEffect, useMemo, useState, useCallback, useRef } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { format } from 'date-fns';
-import { CalendarDays, Edit, GraduationCap, Plus, Search, Trash2, UserMinus, UserPlus, LogOut, Users } from 'lucide-react';
+import { CalendarDays, Edit, GraduationCap, Plus, Search, Trash2, Upload, UserMinus, UserPlus, LogOut, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 import { StudentDialog } from '@/components/student-dialog';
@@ -248,6 +248,134 @@ export function DashboardPage() {
     },
   });
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importing, setImporting] = useState(false);
+
+  async function handleCSVImport(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImporting(true);
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n').map((l) => l.trim()).filter(Boolean);
+      if (lines.length < 2) {
+        toast.error('CSV must have a header row and at least one data row.');
+        return;
+      }
+
+      const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/[\s-]+/g, '_'));
+      const columnMap: Record<string, string> = {
+        first_name: 'first_name', last_name: 'last_name', email: 'email', phone: 'phone',
+        grade_level: 'grade_level', grade: 'grade_level', status: 'status',
+        enrollment_date: 'enrollment_date', enrolled: 'enrollment_date', date: 'enrollment_date',
+        gpa: 'gpa', cgpa: 'gpa', notes: 'notes', usn: 'usn', department: 'department', dept: 'department',
+        semester: 'semester', sem: 'semester', attendance: 'attendance', attend: 'attendance',
+        marks: 'marks', score: 'marks',
+      };
+
+      const mappedHeaders = headers.map((h) => columnMap[h] ?? null);
+      if (!mappedHeaders.includes('first_name') || !mappedHeaders.includes('last_name')) {
+        toast.error('CSV must include "first_name" and "last_name" columns.');
+        return;
+      }
+
+      const rows: Record<string, unknown>[] = [];
+      const errors: string[] = [];
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = parseCSVLine(lines[i]);
+        const row: Record<string, unknown> = {};
+
+        for (let j = 0; j < mappedHeaders.length; j++) {
+          if (mappedHeaders[j] && values[j] !== undefined) {
+            row[mappedHeaders[j]] = values[j].trim();
+          }
+        }
+
+        if (!row.first_name || !row.last_name) {
+          errors.push(`Row ${i + 1}: missing first_name or last_name`);
+          continue;
+        }
+
+        row.status = row.status || 'active';
+        row.enrollment_date = row.enrollment_date || new Date().toISOString().split('T')[0];
+
+        const result = studentSchema.safeParse(row);
+        if (!result.success) {
+          const fieldErrors = result.error.issues.map((iss) => `${iss.path.join('.')}: ${iss.message}`).join('; ');
+          errors.push(`Row ${i + 1} (${row.first_name} ${row.last_name}): ${fieldErrors}`);
+          continue;
+        }
+
+        rows.push(result.data);
+      }
+
+      if (rows.length === 0) {
+        toast.error(`No valid rows to import.${errors.length ? ` Errors: ${errors.slice(0, 3).join('; ')}` : ''}`);
+        return;
+      }
+
+      const normalized = rows.map((r) => ({
+        user_id: userId,
+        first_name: String(r.first_name).trim(),
+        last_name: String(r.last_name).trim(),
+        email: (r.email as string)?.trim() || null,
+        phone: (r.phone as string)?.trim() || null,
+        grade_level: (r.grade_level as string)?.trim() || null,
+        status: r.status || 'active',
+        enrollment_date: String(r.enrollment_date),
+        gpa: (r.gpa as number) ?? null,
+        notes: (r.notes as string)?.trim() || null,
+        usn: (r.usn as string)?.trim() || null,
+        department: (r.department as string)?.trim() || null,
+        semester: (r.semester as number) ?? null,
+        attendance: (r.attendance as number) ?? null,
+        marks: (r.marks as number) ?? null,
+      }));
+
+      const { error } = await supabase.from('students').insert(normalized);
+      if (error) throw error;
+
+      await queryClient.invalidateQueries({ queryKey: ['students'] });
+      toast.success(`Imported ${normalized.length} student${normalized.length !== 1 ? 's' : ''}.${errors.length ? ` ${errors.length} row${errors.length !== 1 ? 's' : ''} skipped.` : ''}`);
+      if (errors.length) {
+        errors.slice(0, 5).forEach((e) => toast.error(e));
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to import CSV.');
+    } finally {
+      setImporting(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  }
+
+  function parseCSVLine(line: string): string[] {
+    const result: string[] = [];
+    let current = '';
+    let inQuotes = false;
+
+    for (let i = 0; i < line.length; i++) {
+      const char = line[i];
+      if (char === '"') {
+        if (inQuotes && line[i + 1] === '"') {
+          current += '"';
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+      } else if (char === ',' && !inQuotes) {
+        result.push(current);
+        current = '';
+      } else {
+        current += char;
+      }
+    }
+    result.push(current);
+    return result;
+  }
+
   async function handleSubmit(values: StudentFormInput) {
     await upsertMutation.mutateAsync({ values, id: editingStudent?.id });
     setEditingStudent(null);
@@ -328,15 +456,33 @@ export function DashboardPage() {
               Search across records, update status, and keep each student profile current from one secure dashboard.
             </p>
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button onClick={() => setDialogOpen(true)}>
-                <Plus className="h-4 w-4" />
-                Add student
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Add a new student record</TooltipContent>
-          </Tooltip>
+          <div className="flex items-center gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv"
+              onChange={handleCSVImport}
+              className="hidden"
+            />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importing}>
+                  <Upload className="h-4 w-4" />
+                  <span className="hidden sm:inline">{importing ? 'Importing...' : 'Import CSV'}</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">Import students from a CSV file</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={() => setDialogOpen(true)}>
+                  <Plus className="h-4 w-4" />
+                  <span className="hidden sm:inline">Add student</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="left">Add a new student record</TooltipContent>
+            </Tooltip>
+          </div>
         </section>
 
         <section className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
