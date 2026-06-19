@@ -1,0 +1,63 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 210 40% 98%;
+  --foreground: 222.2 47.4% 11.2%;
+  --card: 0 0% 100%;
+  --card-foreground: 222.2 47.4% 11.2%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222.2 47.4% 11.2%;
+  --primary: 252 65% 58%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 215 25% 94%;
+  --secondary-foreground: 222.2 47.4% 11.2%;
+  --muted: 214 32% 94%;
+  --muted-foreground: 215.4 16.3% 46.9%;
+  --accent: 232 86% 96%;
+  --accent-foreground: 252 65% 45%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 210 40% 98%;
+  --success: 142 71% 45%;
+  --success-foreground: 0 0% 100%;
+  --border: 214.3 31.8% 91.4%;
+  --input: 214.3 31.8% 91.4%;
+  --ring: 252 65% 58%;
+  --radius: 1rem;
+  --slate-950: 222.2 47.4% 11.2%;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: hsl(var(--background));
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+  color: hsl(var(--foreground));
+  background:
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.12), transparent 30%),
+    linear-gradient(180deg, rgba(248, 250, 252, 1), rgba(241, 245, 249, 1));
+}
+
+#root {
+  min-height: 100vh;
+}
+
+input,
+textarea,
+select,
+button {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(99, 102, 241, 0.2);
+}
