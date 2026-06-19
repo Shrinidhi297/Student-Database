@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { supabase } from '@/lib/supabase';
 import type { Student, StudentStatus } from '@/lib/types';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
-import { CursorGlow } from '@/components/cursor-glow';
 import { AlertDialog } from '@/components/ui/alert-dialog';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
 
 const statusStyles: Record<StudentStatus, 'default' | 'secondary' | 'success' | 'muted'> = {
   active: 'success',
@@ -172,7 +172,6 @@ export function StudentsListPage() {
   return (
     <div className="relative min-h-screen">
       <GeometricBackground />
-      <CursorGlow />
       <div className="noise-overlay" />
       <div className="pointer-events-none fixed inset-0 -z-10 opacity-[0.03]"
         style={{
@@ -196,13 +195,23 @@ export function StudentsListPage() {
             </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard">Dashboard</Link>
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => setShowSignOutConfirm(true)}>
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Go to dashboard</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" onClick={() => setShowSignOutConfirm(true)}>
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Sign out of your account</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </header>
@@ -217,18 +226,33 @@ export function StudentsListPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => exportToCSV(students)} disabled={students.length === 0}>
-              <FileSpreadsheet className="h-4 w-4" />
-              <span className="hidden sm:inline">Export CSV</span>
-            </Button>
-            <Button variant="outline" onClick={() => exportToJSON(students)} disabled={students.length === 0}>
-              <FileJson className="h-4 w-4" />
-              <span className="hidden sm:inline">Export JSON</span>
-            </Button>
-            <Button variant="outline" onClick={() => exportToPDF(students)} disabled={students.length === 0}>
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Export PDF</span>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => exportToCSV(students)} disabled={students.length === 0}>
+                  <FileSpreadsheet className="h-4 w-4" />
+                  <span className="hidden sm:inline">Export CSV</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Export as CSV file</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => exportToJSON(students)} disabled={students.length === 0}>
+                  <FileJson className="h-4 w-4" />
+                  <span className="hidden sm:inline">Export JSON</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Export as JSON file</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => exportToPDF(students)} disabled={students.length === 0}>
+                  <FileText className="h-4 w-4" />
+                  <span className="hidden sm:inline">Export PDF</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Export as PDF document</TooltipContent>
+            </Tooltip>
           </div>
         </section>
 

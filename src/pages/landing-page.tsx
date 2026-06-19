@@ -7,11 +7,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/lib/supabase';
 import { SUGGESTED_QUERIES } from '@/lib/query-parser';
-import { CursorGlow } from '@/components/cursor-glow';
 import { FinisherHeaderEffect } from '@/components/finisher-header-effect';
 import { ScrollReveal } from '@/components/scroll-reveal';
 import { ScrollDemoSection } from '@/components/scroll-demo-section';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
 
 const features = [
   {
@@ -65,7 +65,6 @@ export function LandingPage() {
   return (
     <main className="relative min-h-screen">
       <GeometricBackground />
-      <CursorGlow />
       <div className="noise-overlay" />
 
       {/* Grid background pattern */}
@@ -91,23 +90,38 @@ export function LandingPage() {
         </Link>
         {isSignedIn ? (
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/dashboard">Dashboard</Link>
-            </Button>
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/students">List Of Students</Link>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Go to your dashboard</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/students">List Of Students</Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">View all student records</TooltipContent>
+            </Tooltip>
           </div>
         ) : (
           <div className="flex items-center gap-3">
             <Button asChild variant="ghost" className="hidden sm:inline-flex">
               <Link to="/auth">Sign in</Link>
             </Button>
-            <Button asChild>
-              <Link to="/auth" className="inline-flex items-center gap-2 ripple-btn">
-                Get started <ArrowRight className="h-4 w-4" />
-              </Link>
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild>
+                  <Link to="/auth" className="inline-flex items-center gap-2 ripple-btn">
+                    Get started <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Create an account or sign in</TooltipContent>
+            </Tooltip>
           </div>
         )}
       </header>
@@ -141,18 +155,33 @@ export function LandingPage() {
             >
               {isSignedIn ? (
                 <>
-                  <Button asChild size="lg">
-                    <Link to="/dashboard" className="ripple-btn">Open dashboard</Link>
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button asChild size="lg">
+                        <Link to="/dashboard" className="ripple-btn">Open dashboard</Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Go to your dashboard</TooltipContent>
+                  </Tooltip>
                 </>
               ) : (
                 <>
-                  <Button asChild size="lg">
-                    <Link to="/auth" className="ripple-btn">Sign in</Link>
-                  </Button>
-                  <Button asChild variant="outline" size="lg">
-                    <Link to="/dashboard" className="ripple-btn">Open dashboard</Link>
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button asChild size="lg">
+                        <Link to="/auth" className="ripple-btn">Sign in</Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Sign in to your account</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button asChild variant="outline" size="lg">
+                        <Link to="/dashboard" className="ripple-btn">Open dashboard</Link>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">Try the dashboard as a guest</TooltipContent>
+                  </Tooltip>
                 </>
               )}
             </div>
@@ -225,41 +254,50 @@ export function LandingPage() {
                     }
                   }}
                 />
-                <Button
-                  size="sm"
-                  className="ml-2 shrink-0 rounded-xl ripple-btn"
-                  onClick={() => {
-                    if (demoQuery.trim()) {
-                      if (isSignedIn) {
-                        window.location.href = '/dashboard';
-                      } else {
-                        window.location.href = '/auth';
-                      }
-                    }
-                  }}
-                >
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </Button>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      className="ml-2 shrink-0 rounded-xl ripple-btn"
+                      onClick={() => {
+                        if (demoQuery.trim()) {
+                          if (isSignedIn) {
+                            window.location.href = '/dashboard';
+                          } else {
+                            window.location.href = '/auth';
+                          }
+                        }
+                      }}
+                    >
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Search with AI</TooltipContent>
+                </Tooltip>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-2">
               {SUGGESTED_QUERIES.slice(0, 6).map((query) => (
-                <button
-                  key={query}
-                  type="button"
-                  onClick={() => {
-                    setDemoQuery(query);
-                    if (isSignedIn) {
-                      window.location.href = '/dashboard';
-                    } else {
-                      window.location.href = '/auth';
-                    }
-                  }}
-                  className="rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-xl transition-all duration-200 hover:border-primary/20 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_20px_rgba(133,102,255,0.1)]"
-                >
-                  {query}
-                </button>
+                <Tooltip key={query}>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setDemoQuery(query);
+                        if (isSignedIn) {
+                          window.location.href = '/dashboard';
+                        } else {
+                          window.location.href = '/auth';
+                        }
+                      }}
+                      className="rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-xl transition-all duration-200 hover:border-primary/20 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_20px_rgba(133,102,255,0.1)]"
+                    >
+                      {query}
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Try "{query}"</TooltipContent>
+                </Tooltip>
               ))}
             </div>
 
@@ -272,16 +310,20 @@ export function LandingPage() {
                 'CSE students',
                 'final year',
               ].map((tag) => (
-                <Badge
-                  key={tag}
-                  variant="muted"
-                  className="cursor-pointer text-[10px] transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:shadow-[0_0_12px_rgba(133,102,255,0.1)]"
-                  onClick={() => {
-                    setDemoQuery(tag);
-                  }}
-                >
-                  {tag}
-                </Badge>
+                <Tooltip key={tag}>
+                  <TooltipTrigger asChild>
+                    <Badge
+                      variant="muted"
+                      className="cursor-pointer text-[10px] transition-all duration-200 hover:bg-primary/10 hover:text-primary hover:shadow-[0_0_12px_rgba(133,102,255,0.1)]"
+                      onClick={() => {
+                        setDemoQuery(tag);
+                      }}
+                    >
+                      {tag}
+                    </Badge>
+                  </TooltipTrigger>
+                  <TooltipContent side="top">Try "{tag}"</TooltipContent>
+                </Tooltip>
               ))}
             </div>
           </CardContent>

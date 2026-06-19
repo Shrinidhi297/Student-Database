@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { Session } from '@supabase/supabase-js';
 import { format } from 'date-fns';
-import { CalendarDays, Edit, GraduationCap, Plus, Search, Trash2, UserMinus, UserPlus, LogOut } from 'lucide-react';
+import { CalendarDays, Edit, GraduationCap, Plus, Search, Trash2, UserMinus, UserPlus, LogOut, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { Link, useNavigate } from 'react-router-dom';
 import { StudentDialog } from '@/components/student-dialog';
@@ -20,7 +20,7 @@ import { studentSchema, type StudentFormInput } from '@/lib/validation';
 import { buildFilterQuery } from '@/lib/filter-builder';
 import type { AiSearchFilters, AiSearchResult } from '@/lib/ai-search';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
-import { CursorGlow } from '@/components/cursor-glow';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
 
 const statusStyles: Record<StudentStatus, 'default' | 'secondary' | 'success' | 'muted'> = {
   active: 'success',
@@ -262,7 +262,6 @@ export function DashboardPage() {
   return (
     <div className="relative min-h-screen bg-background">
       <GeometricBackground />
-      <CursorGlow />
       <div className="noise-overlay" />
       <div className="pointer-events-none fixed inset-0 -z-10 opacity-[0.03]"
         style={{
@@ -276,18 +275,33 @@ export function DashboardPage() {
 
       <header className="border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
-          <Link to="/" className="block">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Scholar</p>
-            <p className="text-sm text-muted-foreground">Student database dashboard</p>
+          <Link to="/" className="flex items-center gap-3">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl">
+              <Users className="h-4 w-4 text-primary" />
+            </div>
+            <div className="hidden sm:block">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Scholar</p>
+              <p className="text-xs text-muted-foreground">Dashboard</p>
+            </div>
           </Link>
           <div className="flex items-center gap-2">
-            <Button asChild variant="ghost" size="sm">
-              <Link to="/">Home</Link>
-            </Button>
-            <Button variant="outline" onClick={() => setShowSignOutConfirm(true)}>
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button asChild variant="ghost" size="sm">
+                  <Link to="/">Home</Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Back to landing page</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" onClick={() => setShowSignOutConfirm(true)}>
+                  <LogOut className="h-4 w-4" />
+                  Sign out
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Sign out of your account</TooltipContent>
+            </Tooltip>
           </div>
         </div>
       </header>
@@ -304,10 +318,15 @@ export function DashboardPage() {
               Search across records, update status, and keep each student profile current from one secure dashboard.
             </p>
           </div>
-          <Button onClick={() => setDialogOpen(true)}>
-            <Plus className="h-4 w-4" />
-            Add student
-          </Button>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button onClick={() => setDialogOpen(true)}>
+                <Plus className="h-4 w-4" />
+                Add student
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="left">Add a new student record</TooltipContent>
+          </Tooltip>
         </section>
 
         <section className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
@@ -412,19 +431,29 @@ export function DashboardPage() {
                       <TableCell>{format(new Date(student.enrollment_date), 'MMM d, yyyy')}</TableCell>
                       <TableCell>
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setEditingStudent(student);
-                              setDialogOpen(true);
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                          <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(student)}>
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => {
+                                  setEditingStudent(student);
+                                  setDialogOpen(true);
+                                }}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">Edit {student.first_name}'s record</TooltipContent>
+                          </Tooltip>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="ghost" size="icon" onClick={() => setDeleteTarget(student)}>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side="left">Delete {student.first_name}</TooltipContent>
+                          </Tooltip>
                         </div>
                       </TableCell>
                     </TableRow>

@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/lib/supabase';
 import { authSchema, type AuthFormValues } from '@/lib/validation';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
 
 export function AuthPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
@@ -124,20 +125,30 @@ export function AuthPage() {
               <CardDescription>Use your Supabase account to sign in or create a new account.</CardDescription>
             </div>
             <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.04] p-1 backdrop-blur-xl">
-              <button
-                type="button"
-                onClick={() => setMode('signin')}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${mode === 'signin' ? 'glass-strong shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Sign in
-              </button>
-              <button
-                type="button"
-                onClick={() => setMode('signup')}
-                className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${mode === 'signup' ? 'glass-strong shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-              >
-                Sign up
-              </button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setMode('signin')}
+                    className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${mode === 'signin' ? 'glass-strong shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    Sign in
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Sign in with existing account</TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() => setMode('signup')}
+                    className={`rounded-lg px-3 py-2 text-sm font-medium transition-all duration-200 ${mode === 'signup' ? 'glass-strong shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
+                  >
+                    Sign up
+                  </button>
+                </TooltipTrigger>
+                <TooltipContent side="top">Create a new account</TooltipContent>
+              </Tooltip>
             </div>
           </CardHeader>
           <CardContent>
@@ -153,16 +164,26 @@ export function AuthPage() {
                 <p className="text-sm text-muted-foreground animate-fade-in">{statusMessage}</p>
               ) : null}
 
-              <Button type="submit" className="mt-2 w-full" disabled={loading}>
-                {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
-                {mode === 'signin' ? 'Sign in' : 'Create account'}
-              </Button>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button type="submit" className="mt-2 w-full" disabled={loading}>
+                    {loading ? <LoaderCircle className="h-4 w-4 animate-spin" /> : null}
+                    {mode === 'signin' ? 'Sign in' : 'Create account'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="top">{mode === 'signin' ? 'Sign in with your credentials' : 'Create your new account'}</TooltipContent>
+              </Tooltip>
             </form>
 
             <p className="mt-4 text-center text-sm text-muted-foreground">
-              <Link to="/" className="font-medium text-primary transition-all duration-200 hover:text-primary/80 hover:underline">
-                Back to landing page
-              </Link>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Link to="/" className="font-medium text-primary transition-all duration-200 hover:text-primary/80 hover:underline">
+                    Back to landing page
+                  </Link>
+                </TooltipTrigger>
+                <TooltipContent side="bottom">Return to the home page</TooltipContent>
+              </Tooltip>
             </p>
           </CardContent>
         </Card>
