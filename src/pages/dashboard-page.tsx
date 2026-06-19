@@ -280,10 +280,15 @@ export function DashboardPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Scholar</p>
             <p className="text-sm text-muted-foreground">Student database dashboard</p>
           </Link>
-          <Button variant="outline" onClick={() => setShowSignOutConfirm(true)}>
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/">Home</Link>
+            </Button>
+            <Button variant="outline" onClick={() => setShowSignOutConfirm(true)}>
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </Button>
+          </div>
         </div>
       </header>
 
