@@ -2,67 +2,166 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --background: 246 53% 7%;
-  --foreground: 226 100% 97%;
-  --card: 249 38% 12%;
-  --card-foreground: 226 100% 97%;
-  --popover: 249 38% 12%;
-  --popover-foreground: 226 100% 97%;
-  --primary: 253 83% 66%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 248 24% 18%;
-  --secondary-foreground: 226 100% 97%;
-  --muted: 248 22% 18%;
-  --muted-foreground: 226 18% 70%;
-  --accent: 253 58% 18%;
-  --accent-foreground: 226 100% 97%;
-  --destructive: 0 84.2% 60.2%;
-  --destructive-foreground: 210 40% 98%;
-  --success: 142 71% 45%;
-  --success-foreground: 0 0% 100%;
-  --border: 255 100% 100% / 0.08;
-  --input: 255 100% 100% / 0.1;
-  --ring: 253 83% 66%;
-  --radius: 1.2rem;
-  --slate-950: 246 53% 7%;
+@layer base {
+  :root {
+    --background: 246 53% 7%;
+    --foreground: 226 100% 97%;
+    --card: 249 38% 12%;
+    --card-foreground: 226 100% 97%;
+    --popover: 249 38% 12%;
+    --popover-foreground: 226 100% 97%;
+    --primary: 253 83% 66%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 248 24% 18%;
+    --secondary-foreground: 226 100% 97%;
+    --muted: 248 22% 18%;
+    --muted-foreground: 226 18% 70%;
+    --accent: 253 58% 18%;
+    --accent-foreground: 226 100% 97%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --border: 255 100% 100% / 0.08;
+    --input: 255 100% 100% / 0.1;
+    --ring: 253 83% 66%;
+    --radius: 1.2rem;
+    --slate-950: 246 53% 7%;
+    --sb-track: 246 53% 7%;
+    --sb-thumb: 253 30% 25%;
+    --sb-thumb-hover: 253 50% 40%;
+  }
+
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: hsl(var(--background));
+  }
+
+  body {
+    margin: 0;
+    min-width: 320px;
+    min-height: 100vh;
+    color: hsl(var(--foreground));
+    background:
+      radial-gradient(ellipse 80% 60% at 10% 15%, rgba(108, 93, 255, 0.18), transparent 60%),
+      radial-gradient(ellipse 60% 50% at 85% 12%, rgba(159, 122, 255, 0.13), transparent 55%),
+      radial-gradient(ellipse 70% 40% at 50% 92%, rgba(64, 40, 137, 0.2), transparent 50%),
+      linear-gradient(135deg, #070816 0%, #0a0a1f 38%, #120f2b 100%);
+    background-attachment: fixed;
+  }
+
+  #root {
+    min-height: 100vh;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+  }
+
+  ::selection {
+    background: rgba(165, 145, 255, 0.28);
+  }
 }
 
-* {
-  border-color: hsl(var(--border));
+/* ---- Custom Scrollbar ---- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
+::-webkit-scrollbar-track {
+  background: hsl(var(--sb-track));
+  border-left: 1px solid hsl(var(--border));
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--sb-thumb));
+  border-radius: 4px;
+  transition: background 0.2s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--sb-thumb-hover));
+}
+
+/* Firefox */
 html {
-  font-family: 'Inter', system-ui, sans-serif;
-  background: hsl(var(--background));
+  scrollbar-color: hsl(var(--sb-thumb)) hsl(var(--sb-track));
+  scrollbar-width: thin;
 }
 
-body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  color: hsl(var(--foreground));
-  background:
-    radial-gradient(ellipse 80% 60% at 10% 15%, rgba(108, 93, 255, 0.18), transparent 60%),
-    radial-gradient(ellipse 60% 50% at 85% 12%, rgba(159, 122, 255, 0.13), transparent 55%),
-    radial-gradient(ellipse 70% 40% at 50% 92%, rgba(64, 40, 137, 0.2), transparent 50%),
-    linear-gradient(135deg, #070816 0%, #0a0a1f 38%, #120f2b 100%);
-  background-attachment: fixed;
+/* ---- Noise/Ambient Overlay ---- */
+.noise-overlay {
+  pointer-events: none;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  opacity: 0.020;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  background-size: 128px 128px;
 }
 
-#root {
-  min-height: 100vh;
+/* ---- Gradient Text Animation ---- */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 
-input,
-textarea,
-select,
-button {
-  font: inherit;
+.text-gradient {
+  background: linear-gradient(
+    135deg,
+    hsl(253, 83%, 66%),
+    hsl(270, 80%, 70%),
+    hsl(230, 80%, 70%),
+    hsl(253, 83%, 66%)
+  );
+  background-size: 300% 300%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: gradient-shift 6s ease-in-out infinite;
 }
 
-::selection {
-  background: rgba(165, 145, 255, 0.28);
+/* ---- Button Ripple Effect ---- */
+.ripple-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.ripple-btn::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mx, 50%) var(--my, 50%), rgba(255, 255, 255, 0.12), transparent 60%);
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.ripple-btn:hover::after {
+  opacity: 1;
+}
+
+/* ---- Spline 3D scene overrides ---- */
+.spline-wrapper canvas {
+  background: transparent !important;
+}
+
+.spline-wrapper > div > div:last-child,
+.spline-wrapper [class*="watermark"],
+.spline-wrapper [class*="branding"],
+.spline-wrapper [class*="logo"],
+.spline-wrapper [data-spline*="ui"],
+.spline-wrapper [data-spline*="watermark"] {
+  display: none !important;
 }
 
 @layer components {
@@ -110,5 +209,10 @@ button {
 
   .animate-stagger-fast {
     animation: fade-up 0.3s ease-out both;
+  }
+
+  .preserve-3d {
+    transform-style: preserve-3d;
+    perspective: 800px;
   }
 }

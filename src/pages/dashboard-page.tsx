@@ -19,6 +19,8 @@ import type { Student, StudentStatus } from '@/lib/types';
 import { studentSchema, type StudentFormInput } from '@/lib/validation';
 import { buildFilterQuery } from '@/lib/filter-builder';
 import type { AiSearchFilters, AiSearchResult } from '@/lib/ai-search';
+import { GeometricBackground } from '@/components/ui/shape-landing-hero';
+import { CursorGlow } from '@/components/cursor-glow';
 
 const statusStyles: Record<StudentStatus, 'default' | 'secondary' | 'success' | 'muted'> = {
   active: 'success',
@@ -39,6 +41,7 @@ export function DashboardPage() {
   const [aiFilters, setAiFilters] = useState<AiSearchFilters | null>(null);
   const [aiResults, setAiResults] = useState<Student[] | null>(null);
   const [aiSearching, setAiSearching] = useState(false);
+  const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -257,11 +260,19 @@ export function DashboardPage() {
   const isLoading = studentsQuery.isLoading || aiSearching;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
-        <div className="absolute -left-48 top-1/4 h-[400px] w-[400px] rounded-full bg-primary/8 blur-[120px] animate-float" />
-        <div className="absolute -right-32 bottom-0 h-[350px] w-[350px] rounded-full bg-purple-500/6 blur-[100px] animate-float" style={{ animationDelay: '-3s' }} />
-      </div>
+    <div className="relative min-h-screen bg-background">
+      <GeometricBackground />
+      <CursorGlow />
+      <div className="noise-overlay" />
+      <div className="pointer-events-none fixed inset-0 -z-10 opacity-[0.03]"
+        style={{
+          backgroundImage: `
+            linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
+          `,
+          backgroundSize: '60px 60px',
+        }}
+      />
 
       <header className="border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
@@ -269,7 +280,7 @@ export function DashboardPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Scholar</p>
             <p className="text-sm text-muted-foreground">Student database dashboard</p>
           </Link>
-          <Button variant="outline" onClick={() => void handleSignOut()}>
+          <Button variant="outline" onClick={() => setShowSignOutConfirm(true)}>
             <LogOut className="h-4 w-4" />
             Sign out
           </Button>
@@ -447,6 +458,14 @@ export function DashboardPage() {
             void deleteMutation.mutateAsync(deleteTarget.id);
           }
         }}
+      />
+
+      <AlertDialog
+        open={showSignOutConfirm}
+        onOpenChange={setShowSignOutConfirm}
+        title="Sign out"
+        description="Are you sure you want to sign out? Your data is saved and will be here when you return."
+        onConfirm={() => void handleSignOut()}
       />
     </div>
   );

@@ -196,9 +196,14 @@ export function parseAiTextResponse(text: string): AiResponse {
   return result.data;
 }
 
+function isKeyword(word: string): boolean {
+  return ['active', 'inactive', 'graduated', 'all', 'top', 'the', 'best', 'good', 'bad', 'me', 'my', 'students', 'student', 'show', 'find', 'search', 'list', 'get', 'display', 'fetch', 'load', 'view', 'any', 'some', 'with', 'having', 'that', 'who', 'which', 'whose', 'their'].includes(word.toLowerCase());
+}
+
 export function parseLocalFallback(query: string): AiSearchFilters {
   const q = query.toLowerCase().trim();
   const filters: AiSearchFilters = {};
+  const words = q.split(/\s+/).filter(Boolean);
 
   // Status filters
   if (/\b(active|currently enrolled|enrolled)\b/.test(q)) {
@@ -209,42 +214,96 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     filters.status = 'graduated';
   }
 
-  // Name filters
-  const nameMatch = q.match(/(?:named?|name\s+(?:is|contains?|like))\s+(\w+)/i);
-  if (nameMatch) {
-    filters.first_name = { operator: 'contains', value: nameMatch[1] };
+  // Name filters — try explicit patterns first
+  let capturedName: string | null = null;
+
+  // "students/named/called/called X", "name is X"
+  const explicitNameMatch = q.match(/(?:students?\s+(?:named|called|like)\s+|named\s+|called\s+|name\s+(?:is|like)\s+)(\w+)/i);
+  if (explicitNameMatch) {
+    capturedName = explicitNameMatch[1];
   }
 
-  // "Find X students" pattern — X might be a name
-  const findNameMatch = q.match(/(?:find|show|search)\s+(\w+)\s+student/i);
-  if (findNameMatch && !['active', 'inactive', 'graduated', 'all', 'top', 'the', 'best', 'good', 'bad'].includes(findNameMatch[1].toLowerCase())) {
-    filters.first_name = { operator: 'contains', value: findNameMatch[1] };
+  // "find/show/search X student" where X is not a keyword
+  if (!capturedName) {
+    const findNameMatch = q.match(/(?:find|show|search)\s+(\w+)\s+student/i);
+    if (findNameMatch && !isKeyword(findNameMatch[1])) {
+      capturedName = findNameMatch[1];
+    }
+  }
+
+  // "find/show/search/list X" at end of query or as a single word (not a keyword, not a number)
+  if (!capturedName && words.length <= 3) {
+    for (const word of words) {
+      const clean = word.replace(/[^a-zA-Z]/g, '');
+      if (clean.length >= 2 && !isKeyword(clean) && !/^\d+$/.test(clean) && !['cse', 'aiml', 'ece', 'eee', 'me', 'ce', 'ise', 'it', 'gpa'].includes(clean)) {
+        capturedName = clean;
+        break;
+      }
+    }
+  }
+
+  if (capturedName) {
+    filters.first_name = { operator: 'contains', value: capturedName };
   }
 
   // Department filters
   const deptMatch = q.match(/(?:department|dept|branch|from)\s*[:\s]*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT|CH|BT|AE|RE|PE|SE)/i)
-    || q.match(/\b(CSE|AIML|ECE|EEE|ME|CE|ISE|IT)\b/);
+    || q.match(/\b(CSE|AIML|ECE|EEE|ME|CE|ISE|IT)\b/i);
   if (deptMatch) {
     const dept = deptMatch[1].toUpperCase();
-    filters.department = dept === 'AI' ? 'AIML' : dept;
+    filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
   }
 
-  // Semester filters
-  const semMatch = q.match(/(?:semester|sem|sem\s*)\s*(\d)/i);
+  // "from department" pattern
+  if (!filters.department) {
+    const fromDeptMatch = q.match(/from\s+(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i);
+    if (fromDeptMatch) {
+      const dept = fromDeptMatch[1].toUpperCase();
+      filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+    }
+  }
+
+  // "department of/equal to X"
+  if (!filters.department) {
+    const deptEqMatch = q.match(/(?:dept|department)\s+(?:of|is|=|:)\s*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i);
+    if (deptEqMatch) {
+      const dept = deptEqMatch[1].toUpperCase();
+      filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+    }
+  }
+
+  // Semester / year filters
+  const semMatch = q.match(/(?:semester|sem)\s*(\d)/i);
   if (semMatch) {
     filters.semester = parseInt(semMatch[1], 10);
   }
-  if (/\bfinal\s*year\b/.test(q)) {
+  if (/\bfinal\s*year\b/.test(q) || /\blast\s*year\b/.test(q)) {
     filters.semester = 8;
   }
   if (/\bfirst\s*year\b/.test(q)) {
     filters.semester = 1;
   }
-  if (/\bsecond\s*year\b/.test(q)) {
+  if (/\bsecond\s*year\b/.test(q) || /\bsophomore\b/.test(q)) {
     filters.semester = { operator: 'between', value: 3, value2: 4 };
   }
-  if (/\bthird\s*year\b/.test(q)) {
+  if (/\bthird\s*year\b/.test(q) || /\bjunior\b/.test(q)) {
     filters.semester = { operator: 'between', value: 5, value2: 6 };
+  }
+  // "year N" pattern (year 1, year 2, etc.)
+  if (!filters.semester) {
+    const yearNumMatch = q.match(/\byear\s*(\d)\b/i);
+    if (yearNumMatch) {
+      const y = parseInt(yearNumMatch[1], 10);
+      if (y === 1) {
+        filters.semester = 1;
+      } else if (y === 2) {
+        filters.semester = { operator: 'between', value: 3, value2: 4 };
+      } else if (y === 3) {
+        filters.semester = { operator: 'between', value: 5, value2: 6 };
+      } else if (y === 4) {
+        filters.semester = 8;
+      }
+    }
   }
 
   // Grade level filters
@@ -253,17 +312,20 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     filters.grade_level = { operator: 'contains', value: gradeMatch[1] };
   }
 
-  // GPA filters
-  const gpaAboveMatch = q.match(/gpa\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
-  const gpaBelowMatch = q.match(/gpa\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
-  if (gpaAboveMatch) {
-    filters.gpa = { operator: 'gte', value: parseFloat(gpaAboveMatch[1]) };
-  } else if (gpaBelowMatch) {
-    filters.gpa = { operator: 'lte', value: parseFloat(gpaBelowMatch[1]) };
-  } else {
-    const gpaGenericMatch = q.match(/gpa\s*(?:of\s*)?(\d+(?:\.\d+)?)/i);
-    if (gpaGenericMatch && !/\b(above|below|over|under|less|more|greater|higher|than)\b/.test(q)) {
-      filters.gpa = { operator: 'gte', value: parseFloat(gpaGenericMatch[1]) };
+  // GPA filters — support "cgpa" and "gpa"
+  const gpaPattern = /\b(gpa|cgpa)\b/i;
+  if (gpaPattern.test(q)) {
+    const gpaAboveMatch = q.match(/\bgpa\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
+    const gpaBelowMatch = q.match(/\bgpa\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
+    if (gpaAboveMatch) {
+      filters.gpa = { operator: 'gte', value: parseFloat(gpaAboveMatch[1]) };
+    } else if (gpaBelowMatch) {
+      filters.gpa = { operator: 'lte', value: parseFloat(gpaBelowMatch[1]) };
+    } else {
+      const gpaGenericMatch = q.match(/\bgpa\s*(?:of\s*)?(\d+(?:\.\d+)?)/i);
+      if (gpaGenericMatch && !/\b(above|below|over|under|less|more|greater|higher|than)\b/.test(q)) {
+        filters.gpa = { operator: 'gte', value: parseFloat(gpaGenericMatch[1]) };
+      }
     }
   }
 
@@ -293,18 +355,42 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     filters.marks = { operator: 'lt', value: parseFloat(marksBelowMatch[1]) };
   }
 
-  // Top N students
+  // "whose marks are above/below X"
+  if (!filters.marks) {
+    const marks2 = q.match(/(?:scored?|got|have|with)\s+(?:above|over|more\s+than|>\s*)\s*(\d+(?:\.\d+)?)\s*(?:marks?|score)/i);
+    if (marks2) {
+      filters.marks = { operator: 'gt', value: parseFloat(marks2[1]) };
+    }
+  }
+
+  // Top N students — detect field for ordering
   const topMatch = q.match(/top\s+(\d+)/i);
   if (topMatch) {
     filters.limit = parseInt(topMatch[1], 10);
-    filters.order_by = { field: 'marks', direction: 'desc' };
+    if (/\b(marks?|score)\b/.test(q)) {
+      filters.order_by = { field: 'marks', direction: 'desc' };
+    } else if (/\b(gpa|cgpa)\b/.test(q)) {
+      filters.order_by = { field: 'gpa', direction: 'desc' };
+    } else if (/\battendance\b/.test(q)) {
+      filters.order_by = { field: 'attendance', direction: 'desc' };
+    } else {
+      filters.order_by = { field: 'marks', direction: 'desc' };
+    }
   }
 
-  // Last N students
-  const lastMatch = q.match(/last\s+(\d+)/i);
-  if (lastMatch && !filters.limit) {
-    filters.limit = parseInt(lastMatch[1], 10);
-    filters.order_by = { field: 'created_at', direction: 'desc' };
+  // Last / bottom N students
+  const bottomMatch = q.match(/(?:bottom|last|worst|lowest)\s+(\d+)/i);
+  if (bottomMatch && !filters.limit) {
+    filters.limit = parseInt(bottomMatch[1], 10);
+    if (/\b(marks?|score)\b/.test(q)) {
+      filters.order_by = { field: 'marks', direction: 'asc' };
+    } else if (/\b(gpa|cgpa)\b/.test(q)) {
+      filters.order_by = { field: 'gpa', direction: 'asc' };
+    } else if (/\battendance\b/.test(q)) {
+      filters.order_by = { field: 'attendance', direction: 'asc' };
+    } else {
+      filters.order_by = { field: 'created_at', direction: 'desc' };
+    }
   }
 
   return filters;
