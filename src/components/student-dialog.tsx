@@ -22,6 +22,11 @@ const emptyValues: StudentFormInput = {
   enrollment_date: today,
   gpa: '',
   notes: '',
+  usn: '',
+  department: '',
+  semester: '',
+  attendance: '',
+  marks: '',
 };
 
 export function StudentDialog({
@@ -59,6 +64,11 @@ export function StudentDialog({
             enrollment_date: initialStudent.enrollment_date,
             gpa: initialStudent.gpa ?? '',
             notes: initialStudent.notes ?? '',
+            usn: initialStudent.usn ?? '',
+            department: initialStudent.department ?? '',
+            semester: initialStudent.semester ?? '',
+            attendance: initialStudent.attendance ?? '',
+            marks: initialStudent.marks ?? '',
           }
         : emptyValues,
     );
@@ -117,7 +127,31 @@ export function StudentDialog({
               <Input type="date" {...form.register('enrollment_date')} />
             </Field>
             <Field label="GPA" error={form.formState.errors.gpa?.message as string | undefined}>
-              <Input type="number" step="0.01" min="0" max="4" placeholder="3.75" {...form.register('gpa')} />
+              <Input type="number" step="0.01" min="0" max="10" placeholder="8.50" {...form.register('gpa')} />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="USN" error={form.formState.errors.usn?.message}>
+              <Input placeholder="1KS20CS001" {...form.register('usn')} />
+            </Field>
+            <Field label="Department" error={form.formState.errors.department?.message}>
+              <Input placeholder="CSE, AIML, ECE..." {...form.register('department')} />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Semester" error={form.formState.errors.semester?.message as string | undefined}>
+              <Input type="number" min="1" max="8" placeholder="3" {...form.register('semester')} />
+            </Field>
+            <Field label="Attendance %" error={form.formState.errors.attendance?.message as string | undefined}>
+              <Input type="number" min="0" max="100" placeholder="85" {...form.register('attendance')} />
+            </Field>
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Marks" error={form.formState.errors.marks?.message as string | undefined}>
+              <Input type="number" min="0" max="100" placeholder="92" {...form.register('marks')} />
             </Field>
           </div>
 
@@ -125,7 +159,7 @@ export function StudentDialog({
             <Textarea placeholder="Academic interests, interventions, advisories..." {...form.register('notes')} />
           </Field>
 
-          <div className="flex items-center justify-end gap-3 border-t border-border pt-4">
+          <div className="flex items-center justify-end gap-3 border-t border-white/10 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancel
             </Button>

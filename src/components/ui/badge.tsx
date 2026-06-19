@@ -2,12 +2,12 @@ import * as React from 'react';
 import { cn } from '@/lib/utils';
 
 const badgeVariants = {
-  default: 'border-transparent bg-primary text-primary-foreground',
-  secondary: 'border-transparent bg-secondary text-secondary-foreground',
-  outline: 'text-foreground',
-  success: 'border-transparent bg-success text-success-foreground',
-  muted: 'border-transparent bg-muted text-muted-foreground',
-  destructive: 'border-transparent bg-destructive text-destructive-foreground',
+  default: 'border-white/15 bg-primary/20 text-primary backdrop-blur-xl',
+  secondary: 'border-white/10 bg-white/8 text-secondary-foreground backdrop-blur-xl',
+  outline: 'border-white/10 text-foreground backdrop-blur-xl',
+  success: 'border-white/15 bg-success/20 text-success backdrop-blur-xl',
+  muted: 'border-white/8 bg-white/5 text-muted-foreground backdrop-blur-xl',
+  destructive: 'border-white/15 bg-destructive/20 text-destructive backdrop-blur-xl',
 } as const;
 
 export type BadgeProps = React.HTMLAttributes<HTMLSpanElement> & {

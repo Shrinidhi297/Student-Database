@@ -14,8 +14,11 @@ export function AlertDialog({ open, onOpenChange, title, description, onConfirm 
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <button aria-label="Close alert dialog overlay" className="absolute inset-0 bg-slate-950/40" onClick={() => onOpenChange(false)} />
-      <div className="relative z-10 w-full max-w-md rounded-xl border border-border bg-card p-6 shadow-soft">
+      <div
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+        onClick={() => onOpenChange(false)}
+      />
+      <div className="glass-card relative z-10 w-full max-w-md rounded-2xl p-6 animate-scale-in">
         <h2 className="text-lg font-semibold">{title}</h2>
         {description ? <p className="mt-2 text-sm text-muted-foreground">{description}</p> : null}
         <div className="mt-6 flex justify-end gap-3">

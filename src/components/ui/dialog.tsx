@@ -15,8 +15,11 @@ export function Dialog({ open, onOpenChange, children }: {
 
   return createPortal(
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <button aria-label="Close dialog overlay" className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" onClick={() => onOpenChange(false)} />
-      <div className="relative z-10 w-full max-w-2xl rounded-xl border border-border bg-card shadow-soft">
+      <div
+        className="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"
+        onClick={() => onOpenChange(false)}
+      />
+      <div className="relative z-10 w-full max-w-2xl rounded-2xl border border-white/10 bg-white/6 backdrop-blur-2xl shadow-[0_24px_64px_rgba(0,0,0,0.55)] animate-scale-in">
         {children}
       </div>
     </div>,
@@ -33,7 +36,7 @@ export function DialogContent({ className, children, onClose, title, description
 }) {
   return (
     <div className={cn('relative', className)}>
-      <div className="flex items-start justify-between gap-4 border-b border-border p-6">
+      <div className="flex items-start justify-between gap-4 border-b border-white/10 p-6">
         <div>
           <h2 className="text-xl font-semibold tracking-tight">{title}</h2>
           {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}

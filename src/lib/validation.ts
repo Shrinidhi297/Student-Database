@@ -20,12 +20,46 @@ export const studentSchema = z.object({
       if (value === '' || value === undefined || value === null) {
         return null;
       }
-
       const parsed = typeof value === 'string' ? Number(value) : value;
       return Number.isFinite(parsed) ? parsed : null;
     })
-    .refine((value) => value === null || (value >= 0 && value <= 4), 'GPA must be between 0 and 4.'),
+    .refine((value) => value === null || (value >= 0 && value <= 10), 'CGPA must be between 0 and 10.'),
   notes: z.string().trim().optional().or(z.literal('')),
+  usn: z.string().trim().optional().or(z.literal('')),
+  department: z.string().trim().optional().or(z.literal('')),
+  semester: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((value) => {
+      if (value === '' || value === undefined || value === null) {
+        return null;
+      }
+      const parsed = typeof value === 'string' ? Number(value) : value;
+      return Number.isFinite(parsed) ? parsed : null;
+    })
+    .refine((value) => value === null || (value >= 1 && value <= 8), 'Semester must be between 1 and 8.'),
+  attendance: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((value) => {
+      if (value === '' || value === undefined || value === null) {
+        return null;
+      }
+      const parsed = typeof value === 'string' ? Number(value) : value;
+      return Number.isFinite(parsed) ? parsed : null;
+    })
+    .refine((value) => value === null || (value >= 0 && value <= 100), 'Attendance must be between 0 and 100.'),
+  marks: z
+    .union([z.string(), z.number()])
+    .optional()
+    .transform((value) => {
+      if (value === '' || value === undefined || value === null) {
+        return null;
+      }
+      const parsed = typeof value === 'string' ? Number(value) : value;
+      return Number.isFinite(parsed) ? parsed : null;
+    })
+    .refine((value) => value === null || (value >= 0 && value <= 100), 'Marks must be between 0 and 100.'),
 });
 
 export type AuthFormValues = z.infer<typeof authSchema>;

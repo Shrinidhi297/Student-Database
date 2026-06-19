@@ -6,19 +6,20 @@ type ButtonVariant = 'default' | 'secondary' | 'outline' | 'ghost' | 'destructiv
 type ButtonSize = 'sm' | 'default' | 'lg' | 'icon';
 
 const variantClasses: Record<ButtonVariant, string> = {
-  default: 'bg-primary text-primary-foreground shadow-soft hover:opacity-95',
-  secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
-  outline: 'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
-  ghost: 'hover:bg-accent hover:text-accent-foreground',
-  destructive: 'bg-destructive text-destructive-foreground hover:opacity-95',
-  success: 'bg-success text-success-foreground hover:opacity-95',
+  default:
+    'bg-primary/90 text-primary-foreground shadow-[0_12px_32px_-18px_rgba(128,101,255,0.6)] hover:bg-primary backdrop-blur-xl border border-white/10',
+  secondary: 'glass-strong text-foreground hover:bg-white/10',
+  outline: 'glass text-foreground hover:bg-white/8',
+  ghost: 'text-foreground hover:bg-white/6',
+  destructive: 'bg-destructive/90 text-destructive-foreground hover:bg-destructive backdrop-blur-xl border border-white/10',
+  success: 'bg-success/90 text-success-foreground hover:bg-success backdrop-blur-xl border border-white/10',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-9 rounded-lg px-3 text-sm',
-  default: 'h-10 rounded-xl px-4 py-2',
-  lg: 'h-11 rounded-xl px-6 text-base',
-  icon: 'h-10 w-10 rounded-xl',
+  sm: 'h-9 rounded-full px-3 text-sm',
+  default: 'h-10 rounded-full px-4 py-2',
+  lg: 'h-11 rounded-full px-6 text-base',
+  icon: 'h-10 w-10 rounded-full',
 };
 
 export type ButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -33,15 +34,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 
     return (
       <Comp
-      ref={ref}
+        ref={ref}
         type={asChild ? undefined : 'button'}
-      className={cn(
-        'inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
-        variantClasses[variant],
-        sizeClasses[size],
-        className,
-      )}
-      {...props}
+        className={cn(
+          'inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium transition-all duration-200 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:pointer-events-none disabled:opacity-50',
+          variantClasses[variant],
+          sizeClasses[size],
+          className,
+        )}
+        {...props}
       />
     );
   },

@@ -12,6 +12,11 @@ export type Student = {
   enrollment_date: string;
   gpa: number | null;
   notes: string | null;
+  usn: string | null;
+  department: string | null;
+  semester: number | null;
+  attendance: number | null;
+  marks: number | null;
   created_at: string;
   updated_at: string;
 };
