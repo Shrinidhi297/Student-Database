@@ -13,6 +13,7 @@ import type { Student, StudentStatus } from '@/lib/types';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
 import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
+import { TextReveal } from '@/components/ui/cascade-text';
 
 const statusStyles: Record<StudentStatus, 'default' | 'secondary' | 'success' | 'muted'> = {
   active: 'success',
@@ -190,7 +191,16 @@ export function StudentsListPage() {
               <Users className="h-4 w-4 text-primary" />
             </div>
             <div className="hidden sm:block">
-              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Scholar</p>
+              <TextReveal
+                text="Scholar"
+                as="span"
+                fontSize="0.875rem"
+                color="hsl(var(--primary))"
+                hoverColor="#b2c73a"
+                staggerDelay={20}
+                duration={200}
+                className="font-semibold tracking-[0.24em] p-0 leading-normal"
+              />
               <p className="text-xs text-muted-foreground">Student records</p>
             </div>
           </Link>

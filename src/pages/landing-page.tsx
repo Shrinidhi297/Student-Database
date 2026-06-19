@@ -12,6 +12,7 @@ import { ScrollReveal } from '@/components/scroll-reveal';
 import { ScrollDemoSection } from '@/components/scroll-demo-section';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
+import { TextReveal } from '@/components/ui/cascade-text';
 
 const features = [
   {
@@ -84,7 +85,16 @@ export function LandingPage() {
             <Sparkles className="h-4 w-4 text-primary" />
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-primary">Scholar AI</p>
+            <TextReveal
+              text="Scholar AI"
+              as="span"
+              fontSize="0.875rem"
+              color="hsl(var(--primary))"
+              hoverColor="#b2c73a"
+              staggerDelay={20}
+              duration={200}
+              className="font-semibold tracking-[0.24em] p-0 leading-normal"
+            />
             <p className="text-sm text-muted-foreground">Student tracking for modern schools</p>
           </div>
         </Link>
