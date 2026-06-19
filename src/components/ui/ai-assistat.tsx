@@ -151,10 +151,10 @@ export function FloatingAiAssistant({ title, description }: AIMessageBarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-6 left-6 z-50 flex flex-col items-start gap-3">
+    <div className="fixed bottom-4 left-4 z-50 flex flex-col items-start gap-3 sm:bottom-6 sm:left-6">
       {isOpen && (
         <div
-          className="h-[480px] w-[360px] animate-fade-up sm:h-[520px] sm:w-[400px]"
+          className="w-[calc(100vw-2rem)] h-[480px] animate-fade-up sm:w-[360px] sm:h-[520px] md:w-[400px]"
           style={{ animationDuration: "0.25s" }}
         >
           <AIMessageBar title={title} description={description} />

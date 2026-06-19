@@ -80,10 +80,10 @@ export function LandingPage() {
         }}
       />
 
-      <header className="mx-auto mt-6 flex max-w-7xl items-center justify-between rounded-full border border-white/[0.06] bg-white/[0.03] px-5 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl lg:px-6 animate-fade-down">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl">
-            <Sparkles className="h-4 w-4 text-primary" />
+      <header className="mx-auto mt-4 flex max-w-7xl items-center justify-between rounded-full border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:mt-6 sm:px-5 sm:py-3 lg:px-6 animate-fade-down">
+        <Link to="/" className="flex items-center gap-2 sm:gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl sm:h-9 sm:w-9">
+            <Sparkles className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
           </div>
           <div className="hidden sm:block">
             <TextReveal
@@ -100,7 +100,7 @@ export function LandingPage() {
           </div>
         </Link>
         {isSignedIn ? (
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button asChild variant="ghost" size="sm">
@@ -111,23 +111,23 @@ export function LandingPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button asChild variant="ghost" size="sm">
-                  <Link to="/students">List Of Students</Link>
+                <Button asChild variant="ghost" size="sm" className="hidden xs:inline-flex sm:inline-flex">
+                  <Link to="/students">Students</Link>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">View all student records</TooltipContent>
             </Tooltip>
           </div>
         ) : (
-          <div className="flex items-center gap-3">
-            <Button asChild variant="ghost" className="hidden sm:inline-flex">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <Button asChild variant="ghost" size="sm" className="hidden sm:inline-flex">
               <Link to="/auth">Sign in</Link>
             </Button>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button asChild>
-                  <Link to="/auth" className="inline-flex items-center gap-2 ripple-btn">
-                    Get started <ArrowRight className="h-4 w-4" />
+                <Button asChild size="sm" className="sm:inline-flex">
+                  <Link to="/auth" className="inline-flex items-center gap-1 sm:gap-2 ripple-btn">
+                    Get started <ArrowRight className="h-3.5 w-3.5" />
                   </Link>
                 </Button>
               </TooltipTrigger>
@@ -137,8 +137,8 @@ export function LandingPage() {
         )}
       </header>
 
-      <FinisherHeaderEffect className="min-h-[90vh] overflow-hidden">
-        <div className="mx-auto grid max-w-7xl gap-16 px-6 pb-16 pt-12 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:pt-20">
+      <FinisherHeaderEffect className="min-h-[80vh] overflow-hidden sm:min-h-[90vh]">
+        <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-12 pt-8 sm:gap-16 sm:px-6 sm:pb-16 sm:pt-12 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:pt-20">
           <div className="max-w-3xl">
             <div
               className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-4 py-2 text-sm text-muted-foreground shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl animate-fade-up"
@@ -205,8 +205,8 @@ export function LandingPage() {
           <div className="relative flex items-center justify-center animate-fade-up" style={{ animationDelay: '0.2s' }}>
             <div className="absolute inset-0 -z-10 rounded-[2rem] bg-[radial-gradient(circle_at_center,rgba(133,102,255,0.25),transparent_60%)] blur-3xl" />
             <div className="flex flex-col items-center gap-4">
-              <div className="flex h-20 w-20 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-primary/25 to-purple-600/20 backdrop-blur-xl sm:h-24 sm:w-24 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
-                <Sparkles className="h-8 w-8 text-primary sm:h-9 sm:w-9" />
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/15 bg-gradient-to-br from-primary/25 to-purple-600/20 backdrop-blur-xl sm:h-20 sm:w-20 lg:h-24 lg:w-24 shadow-[inset_0_1px_0_rgba(255,255,255,0.15)]">
+                <Sparkles className="h-6 w-6 text-primary sm:h-8 sm:w-8 lg:h-9 lg:w-9" />
               </div>
               <p className="text-center text-sm font-medium text-muted-foreground">
                 <Sparkles className="mr-1 inline h-3 w-3 text-primary" />

@@ -275,10 +275,10 @@ export function DashboardPage() {
       />
 
       <header className="border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl">
-              <Users className="h-4 w-4 text-primary" />
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl sm:h-9 sm:w-9">
+              <Users className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
             </div>
             <div className="hidden sm:block">
               <TextReveal
@@ -316,14 +316,14 @@ export function DashboardPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-8 px-6 py-8 lg:px-8">
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8">
         <section
           className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between animate-fade-up"
           style={{ animationDelay: '0.05s' }}
         >
           <div>
             <p className="text-sm font-medium text-primary">Authenticated workspace</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">Manage students without losing the thread.</h1>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">Manage students without losing the thread.</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Search across records, update status, and keep each student profile current from one secure dashboard.
             </p>
@@ -390,7 +390,8 @@ export function DashboardPage() {
             />
           </div>
 
-          <div className="mt-6 overflow-hidden rounded-xl border border-white/[0.06]">
+          <div className="mt-6 overflow-x-auto rounded-xl border border-white/[0.06]">
+            <div className="min-w-[640px]">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -471,6 +472,7 @@ export function DashboardPage() {
                 )}
               </TableBody>
             </Table>
+            </div>
           </div>
         </section>
       </main>

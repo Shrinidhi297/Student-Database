@@ -185,10 +185,10 @@ export function StudentsListPage() {
       />
 
       <header className="border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4 lg:px-8">
-          <Link to="/" className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl">
-              <Users className="h-4 w-4 text-primary" />
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+          <Link to="/" className="flex items-center gap-2 sm:gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl sm:h-9 sm:w-9">
+              <Users className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
             </div>
             <div className="hidden sm:block">
               <TextReveal
@@ -204,7 +204,7 @@ export function StudentsListPage() {
               <p className="text-xs text-muted-foreground">Student records</p>
             </div>
           </Link>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1 sm:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button asChild variant="ghost" size="sm">
@@ -216,8 +216,8 @@ export function StudentsListPage() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" size="sm" onClick={() => setShowSignOutConfirm(true)}>
-                  <LogOut className="h-4 w-4" />
-                  Sign out
+                  <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Sign out</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Sign out of your account</TooltipContent>
@@ -226,16 +226,16 @@ export function StudentsListPage() {
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-8 px-6 py-8 lg:px-8">
+      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:space-y-8 sm:px-6 sm:py-8 lg:px-8">
         <section className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between animate-fade-up" style={{ animationDelay: '0.05s' }}>
           <div>
             <p className="text-sm font-medium text-primary">Student directory</p>
-            <h1 className="mt-2 text-3xl font-semibold tracking-tight">List Of Students</h1>
+            <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:text-3xl">List Of Students</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               View all student credentials and export records.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1 sm:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="outline" onClick={() => exportToCSV(students)} disabled={students.length === 0}>
