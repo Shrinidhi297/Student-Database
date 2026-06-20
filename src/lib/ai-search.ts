@@ -97,43 +97,51 @@ function buildSystemPrompt(): string {
     (f) => `  - "${f.name}" (${f.type}): ${f.description}`,
   ).join('\n');
 
-  return `You are a query parser for a student database. Convert natural language queries into structured JSON filters.
+  return `You are a student database query parser. Convert any natural language query into JSON filters. Always return a best-effort parse — NEVER return empty filters.
 
-Available fields:
+Available fields (use ONLY these):
 ${fieldsDesc}
 
-Rules:
+Rules (ABSOLUTELY REQUIRED):
 1. Respond ONLY with valid JSON — no markdown, no code fences, no extra text.
-2. For exact matches use the field name directly with a string value: { "department": "CSE" }
-3. For comparisons use an object with operator and value:
+2. For exact string matches: { "field": "value" } — e.g. { "department": "CSE" }
+3. For numeric comparisons, use operator object:
    Operators: "eq", "neq", "gt", "gte", "lt", "lte", "contains", "between"
-   Examples:
-   - "attendance below 75%" → { "attendance": { "operator": "lt", "value": 75 } }
-   - "marks above 85" → { "marks": { "operator": "gt", "value": 85 } }
-   - "attendance between 60 and 80" → { "attendance": { "operator": "between", "value": 60, "value2": 80 } }
-   - "name containing Rahul" → { "first_name": { "operator": "contains", "value": "Rahul" } }
-4. For "top N" queries add a "limit" field and optionally "order_by":
-   - "top 10 students by marks" → { "order_by": { "field": "marks", "direction": "desc" }, "limit": 10 }
-5. For "final year" / "last semester" use the appropriate field comparison.
-6. Combine multiple conditions in a single "filters" object as separate keys (AND logic).
-7. If the query mentions a name without specifying first/last, match against first_name with "contains".
-8. If the query cannot be understood, return: { "filters": {}, "explanation": "Unable to understand search query. Please try again." }
+4. Department synonyms: computer science/CS → CSE, AIML/AI-ML/AI/ML → AIML, ECE/electronics, ME/mechanical, CE/civil, ISE/information science, IT
+5. For names, use "contains" operator on first_name (and optionally last_name)
+6. For "top N", add limit + order_by with desc direction
+7. For "bottom/last/worst N", add limit + order_by with asc direction
+8. "passed" → marks >= 40, "failed" → marks < 40
+9. "high marks/performers" → marks > 75, "low marks/struggling" → marks < 40
+10. "high CGPA/good CGPA" → gpa >= 8, "low CGPA/poor CGPA" → gpa < 6
+11. "low/poor attendance" → attendance < 75, "good/regular attendance" → attendance >= 75
+12. Years: "first year/freshman" → semester 1, "second year/sophomore" → semester between 3-4, "third year/junior" → semester between 5-6, "final year/last year/senior/fourth year" → semester 8
+13. Combine conditions as separate keys (AND logic)
 
-Example outputs:
-Query: "Show CSE students with attendance below 75%"
-{"filters":{"department":"CSE","attendance":{"operator":"lt","value":75}},"explanation":"CSE students with attendance under 75%"}
+Examples:
+Query: "active CSE students with attendance below 75"
+{"filters":{"status":"active","department":"CSE","attendance":{"operator":"lt","value":75}},"explanation":"Active CSE students with low attendance"}
 
-Query: "Find students who scored above 85 marks"
-{"filters":{"marks":{"operator":"gt","value":85}},"explanation":"Students with marks above 85"}
+Query: "top 5 by marks"
+{"filters":{"order_by":{"field":"marks","direction":"desc"},"limit":5},"explanation":"Top 5 students by marks"}
 
-Query: "Show top 10 students by marks"
-{"filters":{"order_by":{"field":"marks","direction":"desc"},"limit":10},"explanation":"Top 10 students by marks"}
+Query: "show Rahul Patel"
+{"filters":{"first_name":{"operator":"contains","value":"Rahul"},"last_name":{"operator":"contains","value":"Patel"}},"explanation":"Students named Rahul Patel"}
 
-Query: "Show final year students"
-{"filters":{"grade_level":{"operator":"contains","value":"12"}},"explanation":"Final year students"}
+Query: "high performers"
+{"filters":{"marks":{"operator":"gt","value":75}},"explanation":"Students with marks above 75"}
 
-Query: "Find students named Rahul"
-{"filters":{"first_name":{"operator":"contains","value":"Rahul"}},"explanation":"Students named Rahul"}`;
+Query: "failed students"
+{"filters":{"marks":{"operator":"lt","value":40}},"explanation":"Students with marks below 40"}
+
+Query: "students with low attendance"
+{"filters":{"attendance":{"operator":"lt","value":75}},"explanation":"Students with attendance below 75%"}
+
+Query: "AIML department final year"
+{"filters":{"department":"AIML","semester":8},"explanation":"Final year AIML students"}
+
+Query: "show everything"
+{"filters":{},"explanation":"All students"}`;
 }
 
 function buildUserPrompt(query: string): string {
@@ -145,7 +153,7 @@ export async function callAiApi(query: string, apiKey: string): Promise<AiRespon
   const userPrompt = buildUserPrompt(query);
 
   const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-lite:generateContent?key=${apiKey}`,
+    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-pro:generateContent?key=${apiKey}`,
     {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -157,8 +165,8 @@ export async function callAiApi(query: string, apiKey: string): Promise<AiRespon
           },
         ],
         generationConfig: {
-          temperature: 0.1,
-          maxOutputTokens: 512,
+          temperature: 0.2,
+          maxOutputTokens: 1024,
         },
       }),
     },
@@ -197,7 +205,77 @@ export function parseAiTextResponse(text: string): AiResponse {
 }
 
 function isKeyword(word: string): boolean {
-  return ['active', 'inactive', 'graduated', 'all', 'top', 'the', 'best', 'good', 'bad', 'me', 'my', 'students', 'student', 'show', 'find', 'search', 'list', 'get', 'display', 'fetch', 'load', 'view', 'any', 'some', 'with', 'having', 'that', 'who', 'which', 'whose', 'their'].includes(word.toLowerCase());
+  return ['active', 'inactive', 'graduated', 'all', 'top', 'the', 'best', 'good', 'bad', 'me', 'my',
+    'students', 'student', 'show', 'find', 'search', 'list', 'get', 'display', 'fetch', 'load',
+    'view', 'any', 'some', 'with', 'having', 'that', 'who', 'which', 'whose', 'their',
+    'please', 'would', 'could', 'can', 'give', 'tell', 'need', 'want', 'looking', 'where',
+    'are', 'is', 'an', 'a', 'of', 'in', 'on', 'at', 'by', 'to', 'for', 'from', 'and', 'or',
+    'the', 'all', 'me', 'do', 'does', 'did', 'has', 'have', 'been', 'been', 'not', 'no', 'but'].includes(word.toLowerCase());
+}
+
+/** Map synonyms / long names to department codes */
+const DEPT_SYNONYMS: Record<string, string> = {
+  'computer science': 'CSE', 'comp sci': 'CSE', 'computer': 'CSE', 'cs': 'CSE',
+  'computerscience': 'CSE', 'cse': 'CSE',
+  'aiml': 'AIML', 'ai ml': 'AIML', 'ai & ml': 'AIML', 'artificial intelligence': 'AIML',
+  'machine learning': 'AIML', 'ai': 'AIML', 'ml': 'AIML',
+  'ece': 'ECE', 'electronics': 'ECE', 'electronics and communication': 'ECE',
+  'eee': 'EEE', 'electrical': 'EEE', 'electrical and electronics': 'EEE',
+  'me': 'ME', 'mechanical': 'ME', 'mechanical engineering': 'ME',
+  'ce': 'CE', 'civil': 'CE', 'civil engineering': 'CE',
+  'ise': 'ISE', 'information science': 'ISE', 'information science and engineering': 'ISE',
+  'it': 'IT', 'information technology': 'IT',
+};
+
+/** Extract department code from query text, returns null if not found */
+function extractDepartment(q: string): string | null {
+  const patterns = [
+    /(?:department|dept|branch|from)\s*[:\s]*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i,
+    /\b(CSE|AIML|ECE|EEE|ME|CE|ISE|IT)\b/i,
+    /from\s+(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i,
+    /(?:in|of|:)\s*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i,
+  ];
+  for (const p of patterns) {
+    const m = q.match(p);
+    if (m) return m[1].toUpperCase() === 'AI' || m[1].toUpperCase() === 'ML' ? 'AIML' : m[1].toUpperCase();
+  }
+  // Check synonyms
+  for (const [syn, code] of Object.entries(DEPT_SYNONYMS)) {
+    if (q.includes(syn)) return code;
+  }
+  return null;
+}
+
+/** Find standalone numbers in the query with optional context words */
+function extractNumbers(q: string): number[] {
+  const nums: number[] = [];
+  const matches = q.matchAll(/\b(\d+(?:\.\d+)?)\b/g);
+  for (const m of matches) nums.push(parseFloat(m[1]));
+  return nums;
+}
+
+/** Detect USN-like pattern */
+function extractUsn(q: string): string | null {
+  const m = q.match(/\b\d[A-Za-z]{2}\d{2}[A-Za-z]{2}\d{3}\b/);
+  return m ? m[0].toUpperCase() : null;
+}
+
+/** Detect email-like pattern */
+function extractEmail(q: string): string | null {
+  const m = q.match(/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/);
+  return m ? m[0].toLowerCase() : null;
+}
+
+/** Check if a word looks like a person name (capitalizable, >=2 letters, not a keyword/dept/number) */
+function looksLikeName(word: string): boolean {
+  const clean = word.replace(/[^a-zA-Z]/g, '');
+  if (clean.length < 2) return false;
+  const lc = clean.toLowerCase();
+  if (isKeyword(lc)) return false;
+  if (lc in DEPT_SYNONYMS) return false;
+  if (['gpa', 'cgpa', 'sem', 'semester', 'grade', 'marks', 'score', 'attendance',
+       'usn', 'email', 'phone', 'status', 'notes', 'name', 'department', 'dept'].includes(lc)) return false;
+  return true;
 }
 
 export function parseLocalFallback(query: string): AiSearchFilters {
@@ -205,192 +283,229 @@ export function parseLocalFallback(query: string): AiSearchFilters {
   const filters: AiSearchFilters = {};
   const words = q.split(/\s+/).filter(Boolean);
 
-  // Status filters
-  if (/\b(active|currently enrolled|enrolled)\b/.test(q)) {
+  // ── USN ──
+  const usn = extractUsn(q);
+  if (usn) filters.usn = { operator: 'contains', value: usn };
+
+  // ── Email ──
+  const email = extractEmail(q);
+  if (email) filters.email = email;
+
+  // ── Status ──
+  if (/\b(active|currently enrolled|enrolled|current)\b/.test(q)) {
     filters.status = 'active';
-  } else if (/\b(inactive|not active|dropped)\b/.test(q)) {
+  } else if (/\b(inactive|not active|dropped|left|exited)\b/.test(q)) {
     filters.status = 'inactive';
-  } else if (/\b(graduated|alumni|completed)\b/.test(q)) {
+  } else if (/\b(graduated|alumni|completed|passed out|passedout)\b/.test(q)) {
     filters.status = 'graduated';
   }
 
-  // Name filters — try explicit patterns first
-  let capturedName: string | null = null;
+  // ── Department ──
+  const dept = extractDepartment(q);
+  if (dept) filters.department = dept;
 
-  // "students/named/called/called X", "name is X"
-  const explicitNameMatch = q.match(/(?:students?\s+(?:named|called|like)\s+|named\s+|called\s+|name\s+(?:is|like)\s+)(\w+)/i);
-  if (explicitNameMatch) {
-    capturedName = explicitNameMatch[1];
-  }
-
-  // "find/show/search X student" where X is not a keyword
-  if (!capturedName) {
-    const findNameMatch = q.match(/(?:find|show|search)\s+(\w+)\s+student/i);
-    if (findNameMatch && !isKeyword(findNameMatch[1])) {
-      capturedName = findNameMatch[1];
+  // ── Semester / Year ──
+  const exactSem = q.match(/(?:semester|sem)\s*(\d)/i);
+  if (exactSem) {
+    filters.semester = parseInt(exactSem[1], 10);
+  } else if (/\bfinal\s*year\b/.test(q) || /\blast\s*year\b/.test(q) || /\bfourth\s*year\b/.test(q)) {
+    filters.semester = 8;
+  } else if (/\bfirst\s*year\b/.test(q) || /\bfreshman\b/.test(q)) {
+    filters.semester = 1;
+  } else if (/\bsecond\s*year\b/.test(q) || /\bsophomore\b/.test(q)) {
+    filters.semester = { operator: 'between', value: 3, value2: 4 };
+  } else if (/\bthird\s*year\b/.test(q) || /\bjunior\b/.test(q)) {
+    filters.semester = { operator: 'between', value: 5, value2: 6 };
+  } else if (!filters.semester) {
+    const yearNum = q.match(/\byear\s*(\d)\b/i);
+    if (yearNum) {
+      const y = parseInt(yearNum[1], 10);
+      if (y === 1) filters.semester = 1;
+      else if (y === 2) filters.semester = { operator: 'between', value: 3, value2: 4 };
+      else if (y === 3) filters.semester = { operator: 'between', value: 5, value2: 6 };
+      else if (y === 4) filters.semester = 8;
     }
   }
 
-  // "find/show/search/list X" at end of query or as a single word (not a keyword, not a number)
+  // ── Grade level ──
+  const gradeMatch = q.match(/(?:grade|class|level)\s*(\d+)/i);
+  if (gradeMatch) {
+    filters.grade_level = { operator: 'contains', value: gradeMatch[1] };
+  } else if (/\b(freshman|fresher)\b/.test(q)) {
+    filters.grade_level = { operator: 'contains', value: '1' };
+  } else if (/\bsophomore\b/.test(q)) {
+    filters.grade_level = { operator: 'contains', value: '2' };
+  } else if (/\bjunior\b/.test(q)) {
+    filters.grade_level = { operator: 'contains', value: '3' };
+  } else if (/\bsenior\b/.test(q) && !filters.semester) {
+    filters.grade_level = { operator: 'contains', value: '4' };
+  }
+
+  // ── Name extraction ──
+  const numbers = extractNumbers(q);
+
+  let capturedName: string | null = null;
+
+  // "named / called / name is X"
+  const explicitName = q.match(/(?:named|called|name\s+(?:is|like))\s+(\w+)/i);
+  if (explicitName) capturedName = explicitName[1];
+
+  // "find/show/search X"
+  if (!capturedName) {
+    const actionName = q.match(/(?:find|show|search|list)\s+(\w+)/i);
+    if (actionName && looksLikeName(actionName[1])) capturedName = actionName[1];
+  }
+
+  // "X student"
+  if (!capturedName) {
+    const xStudent = q.match(/(\w+)\s+student/i);
+    if (xStudent && looksLikeName(xStudent[1])) capturedName = xStudent[1];
+  }
+
+  // Single word that looks like a name (2+ letters, not keyword/dept/number)
   if (!capturedName && words.length <= 3) {
-    for (const word of words) {
-      const clean = word.replace(/[^a-zA-Z]/g, '');
-      if (clean.length >= 2 && !isKeyword(clean) && !/^\d+$/.test(clean) && !['cse', 'aiml', 'ece', 'eee', 'me', 'ce', 'ise', 'it', 'gpa'].includes(clean)) {
-        capturedName = clean;
+    for (const w of words) {
+      const clean = w.replace(/[^a-zA-Z]/g, '');
+      if (looksLikeName(clean)) { capturedName = clean; break; }
+    }
+  }
+
+  // Two consecutive words that both look like names → first_name + last_name
+  if (!capturedName) {
+    for (let i = 0; i < words.length - 1; i++) {
+      const w1 = words[i].replace(/[^a-zA-Z]/g, '');
+      const w2 = words[i + 1].replace(/[^a-zA-Z]/g, '');
+      if (w1.length >= 2 && w2.length >= 2 && !isKeyword(w1.toLowerCase()) && !isKeyword(w2.toLowerCase()) &&
+          !(w1.toLowerCase() in DEPT_SYNONYMS) && !(w2.toLowerCase() in DEPT_SYNONYMS) &&
+          !['gpa', 'cgpa', 'marks', 'score', 'attendance'].includes(w1.toLowerCase()) &&
+          !['gpa', 'cgpa', 'marks', 'score', 'attendance'].includes(w2.toLowerCase())) {
+        filters.first_name = { operator: 'contains', value: w1 };
+        filters.last_name = { operator: 'contains', value: w2 };
+        capturedName = ''; /* mark as handled */
         break;
       }
     }
   }
 
-  if (capturedName) {
+  if (capturedName && capturedName.length > 0) {
     filters.first_name = { operator: 'contains', value: capturedName };
   }
 
-  // Department filters
-  const deptMatch = q.match(/(?:department|dept|branch|from)\s*[:\s]*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT|CH|BT|AE|RE|PE|SE)/i)
-    || q.match(/\b(CSE|AIML|ECE|EEE|ME|CE|ISE|IT)\b/i);
-  if (deptMatch) {
-    const dept = deptMatch[1].toUpperCase();
-    filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
-  }
+  // ── Number-based filters (attendance, marks, gpa) ──
+  for (const num of numbers) {
+    if (num > 100 || (num >= 0 && num <= 10 && /\b(sem(ester)?|year)\b/i.test(q) && num >= 1 && num <= 8)) continue;
 
-  // "from department" pattern
-  if (!filters.department) {
-    const fromDeptMatch = q.match(/from\s+(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i);
-    if (fromDeptMatch) {
-      const dept = fromDeptMatch[1].toUpperCase();
-      filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+    // "X% attendance", "attendance X%", "attendance X"
+    const attPercent = q.match(/(?:attendance\s*(?:of\s*)?)(\d+(?:\.\d+)?)\s*%/i);
+    const attVal = q.match(/(\d+(?:\.\d+)?)\s*%\s*attendance/i);
+    const attBelow = q.match(/attendance\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
+    const attAbove = q.match(/attendance\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
+    const attBetween = q.match(/attendance\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
+    const attLow = /\b(low|poor|bad|worst|irregular)\s+attendance\b/.test(q);
+    const attHigh = /\b(good|high|regular|best)\s+attendance\b/.test(q);
+
+    if (attBetween) {
+      filters.attendance = { operator: 'between', value: parseFloat(attBetween[1]), value2: parseFloat(attBetween[2]) };
+    } else if (attBelow || attLow) {
+      filters.attendance = { operator: 'lt', value: attBelow ? parseFloat(attBelow[1]) : 75 };
+    } else if (attAbove || attHigh) {
+      filters.attendance = { operator: 'gte', value: attAbove ? parseFloat(attAbove[1]) : 75 };
+    } else if (attPercent) {
+      filters.attendance = { operator: 'gte', value: parseFloat(attPercent[1]) };
+    } else if (attVal) {
+      filters.attendance = { operator: 'gte', value: parseFloat(attVal[1]) };
+    }
+
+    // Marks: "marks X", "X marks", "scored X", "score above/below X"
+    const marksAbove = q.match(/(?:marks?|score|scored)\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
+    const marksBelow = q.match(/(?:marks?|score|scored)\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
+    const marksBetween = q.match(/(?:marks?|score)\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
+    const marksExact = q.match(/(?:marks?|score|scored)\s*(?:of\s*)?(\d+(?:\.\d+)?)\b/i);
+    const highPerformer = /\b(high|top|best|excellent|good|bright)\s+(performers?|scorers?|students|marks)\b/.test(q);
+    const lowPerformer = /\b(low|poor|bad|weak|struggling)\s+(performers?|scorers?|students|marks)\b/.test(q);
+
+    if (marksBetween) {
+      filters.marks = { operator: 'between', value: parseFloat(marksBetween[1]), value2: parseFloat(marksBetween[2]) };
+    } else if (marksAbove || highPerformer) {
+      filters.marks = { operator: 'gt', value: marksAbove ? parseFloat(marksAbove[1]) : 75 };
+    } else if (marksBelow || lowPerformer) {
+      filters.marks = { operator: 'lt', value: marksBelow ? parseFloat(marksBelow[1]) : 40 };
+    } else if (marksExact) {
+      filters.marks = { operator: 'gt', value: parseFloat(marksExact[1]) };
+    }
+
+    // "scored/got X" without explicit marks keyword
+    if (!filters.marks && !filters.attendance) {
+      const scored = q.match(/(?:scored?|got|have|with)\s+(?:above|over|more\s+than|>\s*)\s*(\d+(?:\.\d+)?)\s*(?:marks?|score)?/i);
+      if (scored) filters.marks = { operator: 'gt', value: parseFloat(scored[1]) };
+    }
+
+    // GPA: "gpa X", "cgpa X", "gpa above/below X"
+    const gpaAbove = q.match(/(?:gpa|cgpa)\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
+    const gpaBelow = q.match(/(?:gpa|cgpa)\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
+    const gpaBetween = q.match(/(?:gpa|cgpa)\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
+
+    if (gpaBetween) {
+      filters.gpa = { operator: 'between', value: parseFloat(gpaBetween[1]), value2: parseFloat(gpaBetween[2]) };
+    } else if (gpaAbove) {
+      filters.gpa = { operator: 'gte', value: parseFloat(gpaAbove[1]) };
+    } else if (gpaBelow) {
+      filters.gpa = { operator: 'lte', value: parseFloat(gpaBelow[1]) };
+    } else if (/\b(gpa|cgpa)\b/i.test(q) && !filters.gpa) {
+      const gpaVal = q.match(/(?:gpa|cgpa)\s*(?:of\s*)?(\d+(?:\.\d+)?)/i);
+      if (gpaVal) filters.gpa = { operator: 'gte', value: parseFloat(gpaVal[1]) };
+    }
+
+    // "high CGPA" / "low CGPA"
+    if (!filters.gpa) {
+      if (/\b(high|good|excellent|best)\s+(gpa|cgpa)\b/.test(q)) filters.gpa = { operator: 'gte', value: 8 };
+      if (/\b(low|poor|bad|worst)\s+(gpa|cgpa)\b/.test(q)) filters.gpa = { operator: 'lt', value: 6 };
     }
   }
 
-  // "department of/equal to X"
-  if (!filters.department) {
-    const deptEqMatch = q.match(/(?:dept|department)\s+(?:of|is|=|:)\s*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i);
-    if (deptEqMatch) {
-      const dept = deptEqMatch[1].toUpperCase();
-      filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
-    }
+  // ── "failed" → marks < 40 or attendance < 75 ──
+  if (/\bfailed?\b/.test(q) || /\b(flunked|fail)\b/.test(q)) {
+    if (!filters.marks) filters.marks = { operator: 'lt', value: 40 };
   }
 
-  // Semester / year filters
-  const semMatch = q.match(/(?:semester|sem)\s*(\d)/i);
-  if (semMatch) {
-    filters.semester = parseInt(semMatch[1], 10);
-  }
-  if (/\bfinal\s*year\b/.test(q) || /\blast\s*year\b/.test(q)) {
-    filters.semester = 8;
-  }
-  if (/\bfirst\s*year\b/.test(q)) {
-    filters.semester = 1;
-  }
-  if (/\bsecond\s*year\b/.test(q) || /\bsophomore\b/.test(q)) {
-    filters.semester = { operator: 'between', value: 3, value2: 4 };
-  }
-  if (/\bthird\s*year\b/.test(q) || /\bjunior\b/.test(q)) {
-    filters.semester = { operator: 'between', value: 5, value2: 6 };
-  }
-  // "year N" pattern (year 1, year 2, etc.)
-  if (!filters.semester) {
-    const yearNumMatch = q.match(/\byear\s*(\d)\b/i);
-    if (yearNumMatch) {
-      const y = parseInt(yearNumMatch[1], 10);
-      if (y === 1) {
-        filters.semester = 1;
-      } else if (y === 2) {
-        filters.semester = { operator: 'between', value: 3, value2: 4 };
-      } else if (y === 3) {
-        filters.semester = { operator: 'between', value: 5, value2: 6 };
-      } else if (y === 4) {
-        filters.semester = 8;
-      }
-    }
+  // ── "passed" → marks >= 40 ──
+  if (/\b(passed?|pass)\b/.test(q) && !filters.marks) {
+    filters.marks = { operator: 'gte', value: 40 };
   }
 
-  // Grade level filters
-  const gradeMatch = q.match(/(?:grade|class|level)\s*(\d+)/i);
-  if (gradeMatch) {
-    filters.grade_level = { operator: 'contains', value: gradeMatch[1] };
+  // ── "low attendance" → attendance < 75 ──
+  if (/\b(low|poor|bad|worst|irregular)\s+attendance\b/.test(q) && !filters.attendance) {
+    filters.attendance = { operator: 'lt', value: 75 };
+  }
+  if (/\b(good|high|regular|best)\s+attendance\b/.test(q) && !filters.attendance) {
+    filters.attendance = { operator: 'gte', value: 75 };
   }
 
-  // GPA filters — support "cgpa" and "gpa"
-  const gpaPattern = /\b(gpa|cgpa)\b/i;
-  if (gpaPattern.test(q)) {
-    const gpaAboveMatch = q.match(/\bgpa\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
-    const gpaBelowMatch = q.match(/\bgpa\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
-    if (gpaAboveMatch) {
-      filters.gpa = { operator: 'gte', value: parseFloat(gpaAboveMatch[1]) };
-    } else if (gpaBelowMatch) {
-      filters.gpa = { operator: 'lte', value: parseFloat(gpaBelowMatch[1]) };
-    } else {
-      const gpaGenericMatch = q.match(/\bgpa\s*(?:of\s*)?(\d+(?:\.\d+)?)/i);
-      if (gpaGenericMatch && !/\b(above|below|over|under|less|more|greater|higher|than)\b/.test(q)) {
-        filters.gpa = { operator: 'gte', value: parseFloat(gpaGenericMatch[1]) };
-      }
-    }
-  }
-
-  // Attendance filters
-  const attBelowMatch = q.match(/attendance\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
-  const attAboveMatch = q.match(/attendance\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
-  const attBetweenMatch = q.match(/attendance\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
-  if (attBetweenMatch) {
-    filters.attendance = { operator: 'between', value: parseFloat(attBetweenMatch[1]), value2: parseFloat(attBetweenMatch[2]) };
-  } else if (attBelowMatch) {
-    filters.attendance = { operator: 'lt', value: parseFloat(attBelowMatch[1]) };
-  } else if (attAboveMatch) {
-    filters.attendance = { operator: 'gt', value: parseFloat(attAboveMatch[1]) };
-  } else {
-    const attGenericMatch = q.match(/attendance\s*(?:of\s*)?(\d+(?:\.\d+)?)/i);
-    if (attGenericMatch) {
-      filters.attendance = { operator: 'gte', value: parseFloat(attGenericMatch[1]) };
-    }
-  }
-
-  // Marks filters
-  const marksAboveMatch = q.match(/marks?\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least|scored?\s*(?:above|over|more|greater))\s*(\d+(?:\.\d+)?)/i);
-  const marksBelowMatch = q.match(/marks?\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
-  if (marksAboveMatch) {
-    filters.marks = { operator: 'gt', value: parseFloat(marksAboveMatch[1]) };
-  } else if (marksBelowMatch) {
-    filters.marks = { operator: 'lt', value: parseFloat(marksBelowMatch[1]) };
-  }
-
-  // "whose marks are above/below X"
-  if (!filters.marks) {
-    const marks2 = q.match(/(?:scored?|got|have|with)\s+(?:above|over|more\s+than|>\s*)\s*(\d+(?:\.\d+)?)\s*(?:marks?|score)/i);
-    if (marks2) {
-      filters.marks = { operator: 'gt', value: parseFloat(marks2[1]) };
-    }
-  }
-
-  // Top N students — detect field for ordering
+  // ── Top / Bottom N ──
   const topMatch = q.match(/top\s+(\d+)/i);
   if (topMatch) {
     filters.limit = parseInt(topMatch[1], 10);
-    if (/\b(marks?|score)\b/.test(q)) {
-      filters.order_by = { field: 'marks', direction: 'desc' };
-    } else if (/\b(gpa|cgpa)\b/.test(q)) {
-      filters.order_by = { field: 'gpa', direction: 'desc' };
-    } else if (/\battendance\b/.test(q)) {
-      filters.order_by = { field: 'attendance', direction: 'desc' };
-    } else {
-      filters.order_by = { field: 'marks', direction: 'desc' };
-    }
+    if (/\b(marks?|score)\b/.test(q)) filters.order_by = { field: 'marks', direction: 'desc' };
+    else if (/\b(gpa|cgpa)\b/.test(q)) filters.order_by = { field: 'gpa', direction: 'desc' };
+    else if (/\battendance\b/.test(q)) filters.order_by = { field: 'attendance', direction: 'desc' };
+    else filters.order_by = { field: 'marks', direction: 'desc' };
   }
 
-  // Last / bottom N students
   const bottomMatch = q.match(/(?:bottom|last|worst|lowest)\s+(\d+)/i);
   if (bottomMatch && !filters.limit) {
     filters.limit = parseInt(bottomMatch[1], 10);
-    if (/\b(marks?|score)\b/.test(q)) {
-      filters.order_by = { field: 'marks', direction: 'asc' };
-    } else if (/\b(gpa|cgpa)\b/.test(q)) {
-      filters.order_by = { field: 'gpa', direction: 'asc' };
-    } else if (/\battendance\b/.test(q)) {
-      filters.order_by = { field: 'attendance', direction: 'asc' };
-    } else {
-      filters.order_by = { field: 'created_at', direction: 'desc' };
-    }
+    if (/\b(marks?|score)\b/.test(q)) filters.order_by = { field: 'marks', direction: 'asc' };
+    else if (/\b(gpa|cgpa)\b/.test(q)) filters.order_by = { field: 'gpa', direction: 'asc' };
+    else if (/\battendance\b/.test(q)) filters.order_by = { field: 'attendance', direction: 'asc' };
+    else filters.order_by = { field: 'created_at', direction: 'desc' };
+  }
+
+  // ── "high/low marks" without numbers ──
+  if (/\b(high|good|excellent|best|bright)\s+(marks?|scorers?|performers?)\b/.test(q) && !filters.marks) {
+    filters.marks = { operator: 'gt', value: 75 };
+  }
+  if (/\b(low|poor|bad|weak|struggling)\s+(marks?|scorers?|performers?)\b/.test(q) && !filters.marks) {
+    filters.marks = { operator: 'lt', value: 40 };
   }
 
   return filters;

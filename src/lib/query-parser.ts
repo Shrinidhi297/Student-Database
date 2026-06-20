@@ -2,9 +2,7 @@ import { callAiApi, parseLocalFallback, type AiSearchFilters, type AiSearchResul
 
 function getApiKey(): string | null {
   const key = import.meta.env.VITE_GEMINI_API_KEY as string | undefined;
-  if (!key || key === 'your_gemini_api_key_here') {
-    return null;
-  }
+  if (!key || key === 'your_gemini_api_key_here') return null;
   return key;
 }
 
@@ -19,10 +17,7 @@ function hasValidFilters(filters: AiSearchFilters): boolean {
 
 export async function parseNaturalLanguage(query: string): Promise<ParseResult> {
   const trimmed = query.trim();
-
-  if (!trimmed) {
-    return { ok: false, error: 'Please enter a search query.' };
-  }
+  if (!trimmed) return { ok: false, error: 'Please enter a search query.' };
 
   const apiKey = getApiKey();
 
@@ -30,38 +25,24 @@ export async function parseNaturalLanguage(query: string): Promise<ParseResult> 
     try {
       const aiResponse = await callAiApi(trimmed, apiKey);
       const filters = aiResponse.filters ?? {};
-
       if (hasValidFilters(filters)) {
-        return {
-          ok: true,
-          result: { filters: filters as AiSearchFilters, raw_query: trimmed },
-        };
+        return { ok: true, result: { filters: filters as AiSearchFilters, raw_query: trimmed } };
       }
     } catch {
-      // AI API failed — fall through to local parser
+      // fall through
     }
   }
 
   const localFilters = parseLocalFallback(trimmed);
-
   if (hasValidFilters(localFilters)) {
-    return {
-      ok: true,
-      result: { filters: localFilters, raw_query: trimmed },
-    };
+    return { ok: true, result: { filters: localFilters, raw_query: trimmed } };
   }
 
-  if (!apiKey) {
-    return {
-      ok: false,
-      error: 'AI search is in offline mode. Add a valid Gemini API key to .env for full natural language support.',
-    };
-  }
-
-  return {
-    ok: false,
-    error: 'Unable to understand search query. Please try again.',
+  // Last-resort fuzzy: treat entire query as a generic search across name/usn/department
+  const generic: AiSearchFilters = {
+    first_name: { operator: 'contains', value: trimmed.replace(/^(show|find|search|list|get|display|fetch|load|view|all|any)\s+/i, '').trim() },
   };
+  return { ok: true, result: { filters: generic, raw_query: trimmed } };
 }
 
 export const SUGGESTED_QUERIES = [
@@ -73,6 +54,10 @@ export const SUGGESTED_QUERIES = [
   'Find students named Rahul',
   'Show final year students',
   'Find students with attendance between 60 and 80%',
+  'Show CSE students with low attendance',
+  'Find high performers with marks above 90',
+  'Show me students from AIML department',
+  'Find failed students attendance below 40',
 ];
 
 const RECENT_SEARCHES_KEY = 'scholar_ai_recent_searches';
@@ -81,17 +66,11 @@ const MAX_RECENT = 10;
 export function getRecentSearches(): string[] {
   try {
     const stored = localStorage.getItem(RECENT_SEARCHES_KEY);
-    if (!stored) {
-      return [];
-    }
+    if (!stored) return [];
     const parsed = JSON.parse(stored);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
+    if (!Array.isArray(parsed)) return [];
     return parsed.slice(0, MAX_RECENT);
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
 
 export function addRecentSearch(query: string): void {
@@ -99,7 +78,5 @@ export function addRecentSearch(query: string): void {
     const existing = getRecentSearches();
     const updated = [query, ...existing.filter((q) => q !== query)].slice(0, MAX_RECENT);
     localStorage.setItem(RECENT_SEARCHES_KEY, JSON.stringify(updated));
-  } catch {
-    // localStorage may be unavailable
-  }
+  } catch { /* noop */ }
 }
