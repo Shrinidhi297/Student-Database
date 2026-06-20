@@ -22,11 +22,35 @@ export function AuthPage() {
 
   const form = useForm<AuthFormValues>({
     resolver: zodResolver(authSchema),
-    defaultValues: { email: '', password: '' },
+    defaultValues: { email: '', password: '', first_name: '', last_name: '' },
   });
 
   useEffect(() => {
     let active = true;
+
+    const hash = window.location.hash;
+    if (hash && hash.includes('access_token=')) {
+      const params = new URLSearchParams(hash.replace('#', '?'));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+
+      if (accessToken) {
+        supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken ?? '',
+        }).then(({ data, error }) => {
+          if (!active) return;
+          if (data.session) {
+            window.location.hash = '';
+            navigate('/dashboard', { replace: true });
+          } else {
+            setCheckingSession(false);
+            if (error) setStatusMessage(error.message);
+          }
+        });
+        return;
+      }
+    }
 
     supabase.auth.getSession().then(({ data }) => {
       if (!active) {
@@ -59,6 +83,14 @@ export function AuthPage() {
     setStatusMessage('');
 
     try {
+      if (mode === 'signup') {
+        if (!values.first_name || !values.last_name) {
+          setStatusMessage('First name and last name are required.');
+          setLoading(false);
+          return;
+        }
+      }
+
       if (mode === 'signin') {
         const { error } = await supabase.auth.signInWithPassword({
           email: values.email,
@@ -78,6 +110,10 @@ export function AuthPage() {
         password: values.password,
         options: {
           emailRedirectTo: `${window.location.origin}/auth`,
+          data: {
+            first_name: values.first_name ?? '',
+            last_name: values.last_name ?? '',
+          },
         },
       });
 
@@ -153,6 +189,16 @@ export function AuthPage() {
           </CardHeader>
           <CardContent>
             <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
+              {mode === 'signup' ? (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="First name" error={form.formState.errors.first_name?.message}>
+                    <Input placeholder="John" {...form.register('first_name')} />
+                  </Field>
+                  <Field label="Last name" error={form.formState.errors.last_name?.message}>
+                    <Input placeholder="Doe" {...form.register('last_name')} />
+                  </Field>
+                </div>
+              ) : null}
               <Field label="Email" error={form.formState.errors.email?.message}>
                 <Input type="email" placeholder="you@example.com" {...form.register('email')} />
               </Field>

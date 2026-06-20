@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import { FileJson, FileSpreadsheet, FileText, LogOut, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
@@ -101,6 +102,7 @@ function exportToPDF(students: Student[]) {
 }
 
 export function StudentsListPage() {
+  const [session, setSession] = useState<Session | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
@@ -110,7 +112,10 @@ export function StudentsListPage() {
     let active = true;
 
     supabase.auth.getSession().then(({ data }) => {
+      if (!active) return;
+      setSession(data.session);
       const userId = data.session?.user.id;
+
       if (!userId) {
         if (active) {
           setLoading(false);
@@ -205,6 +210,14 @@ export function StudentsListPage() {
             </div>
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
+            <div className="hidden items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 sm:flex">
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-medium text-primary">
+                {(session?.user.user_metadata?.first_name ?? session?.user.email ?? '?').charAt(0).toUpperCase()}
+              </div>
+              <span className="max-w-[140px] truncate text-xs text-muted-foreground">
+                {[session?.user.user_metadata?.first_name, session?.user.user_metadata?.last_name].filter(Boolean).join(' ') || session?.user.email}
+              </span>
+            </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button asChild variant="ghost" size="sm">

@@ -423,6 +423,14 @@ export function DashboardPage() {
             </div>
           </Link>
           <div className="flex items-center gap-2">
+            <div className="hidden items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 sm:flex">
+              <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-medium text-primary">
+                {(session?.user.user_metadata?.first_name ?? session?.user.email ?? '?').charAt(0).toUpperCase()}
+              </div>
+              <span className="max-w-[140px] truncate text-xs text-muted-foreground">
+                {[session?.user.user_metadata?.first_name, session?.user.user_metadata?.last_name].filter(Boolean).join(' ') || session?.user.email}
+              </span>
+            </div>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button asChild variant="ghost" size="sm">
@@ -435,7 +443,7 @@ export function DashboardPage() {
               <TooltipTrigger asChild>
                 <Button variant="outline" onClick={() => setShowSignOutConfirm(true)}>
                   <LogOut className="h-4 w-4" />
-                  Sign out
+                  <span className="hidden sm:inline">Sign out</span>
                 </Button>
               </TooltipTrigger>
               <TooltipContent side="bottom">Sign out of your account</TooltipContent>
