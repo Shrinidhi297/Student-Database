@@ -189,8 +189,8 @@ export function StudentsListPage() {
         }}
       />
 
-      <header className="border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+      <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-1 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl sm:h-9 sm:w-9">
               <Users className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
@@ -210,7 +210,7 @@ export function StudentsListPage() {
             </div>
           </Link>
           <div className="flex items-center gap-1 sm:gap-2">
-            <div className="hidden items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 sm:flex">
+            <div className="hidden items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 sm:flex sm:px-2.5 sm:py-1">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-medium text-primary">
                 {(session?.user.user_metadata?.first_name ?? session?.user.email ?? '?').charAt(0).toUpperCase()}
               </div>
@@ -220,7 +220,7 @@ export function StudentsListPage() {
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="ghost" size="sm" className="min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0">
                   <Link to="/dashboard">Dashboard</Link>
                 </Button>
               </TooltipTrigger>
@@ -228,7 +228,7 @@ export function StudentsListPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => setShowSignOutConfirm(true)}>
+                <Button variant="outline" size="sm" onClick={() => setShowSignOutConfirm(true)} className="min-h-[36px] sm:min-h-0">
                   <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Sign out</span>
                 </Button>
@@ -251,8 +251,8 @@ export function StudentsListPage() {
           <div className="flex gap-1 sm:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={() => exportToCSV(students)} disabled={students.length === 0}>
-                  <FileSpreadsheet className="h-4 w-4" />
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(students)} disabled={students.length === 0} className="min-h-[40px] sm:min-h-0">
+                  <FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Export CSV</span>
                 </Button>
               </TooltipTrigger>
@@ -260,8 +260,8 @@ export function StudentsListPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={() => exportToJSON(students)} disabled={students.length === 0}>
-                  <FileJson className="h-4 w-4" />
+                <Button variant="outline" size="sm" onClick={() => exportToJSON(students)} disabled={students.length === 0} className="min-h-[40px] sm:min-h-0">
+                  <FileJson className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Export JSON</span>
                 </Button>
               </TooltipTrigger>
@@ -269,8 +269,8 @@ export function StudentsListPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={() => exportToPDF(students)} disabled={students.length === 0}>
-                  <FileText className="h-4 w-4" />
+                <Button variant="outline" size="sm" onClick={() => exportToPDF(students)} disabled={students.length === 0} className="min-h-[40px] sm:min-h-0">
+                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Export PDF</span>
                 </Button>
               </TooltipTrigger>
@@ -279,7 +279,7 @@ export function StudentsListPage() {
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3 animate-fade-up" style={{ animationDelay: '0.08s' }}>
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 animate-fade-up" style={{ animationDelay: '0.08s' }}>
           <Card>
             <CardContent className="p-6">
               <p className="text-sm text-muted-foreground">Total Students</p>
@@ -307,7 +307,7 @@ export function StudentsListPage() {
               <CardDescription>{students.length} record{students.length !== 1 ? 's' : ''}</CardDescription>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
-              <div className="overflow-x-auto rounded-xl border border-white/[0.06]">
+              <div className="overflow-x-auto rounded-xl border border-white/[0.06] -mx-4 sm:mx-0">
                 <Table>
                   <TableHeader>
                     <TableRow>

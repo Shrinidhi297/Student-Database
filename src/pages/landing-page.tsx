@@ -80,7 +80,7 @@ export function LandingPage() {
         }}
       />
 
-      <header className="mx-auto mt-4 flex max-w-7xl items-center justify-between rounded-full border border-white/[0.06] bg-white/[0.03] px-4 py-2.5 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:mt-6 sm:px-5 sm:py-3 lg:px-6 animate-fade-down">
+      <header className="mx-auto mt-2 flex max-w-7xl items-center justify-between rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-2 shadow-[0_8px_32px_rgba(0,0,0,0.45)] backdrop-blur-2xl sm:mt-6 sm:px-5 sm:py-3 lg:px-6 animate-fade-down">
         <Link to="/" className="flex items-center gap-2 sm:gap-3">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl sm:h-9 sm:w-9">
             <Sparkles className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
@@ -137,8 +137,8 @@ export function LandingPage() {
         )}
       </header>
 
-      <FinisherHeaderEffect className="min-h-[80vh] overflow-hidden sm:min-h-[90vh]">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 pb-12 pt-8 sm:gap-16 sm:px-6 sm:pb-16 sm:pt-12 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:pt-20">
+      <FinisherHeaderEffect className="min-h-[70vh] overflow-hidden sm:min-h-[90vh]">
+        <div className="mx-auto grid max-w-7xl gap-6 px-4 pb-10 pt-6 sm:gap-16 sm:px-6 sm:pb-16 sm:pt-12 lg:grid-cols-[1.2fr_0.8fr] lg:px-8 lg:pt-20">
           <div className="max-w-3xl">
             <div
               className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/[0.06] bg-white/[0.03] px-4 py-2 text-sm text-muted-foreground shadow-[0_8px_32px_rgba(0,0,0,0.4)] backdrop-blur-2xl animate-fade-up"
@@ -153,7 +153,7 @@ export function LandingPage() {
               gradientAnimationDuration={3}
               hoverEffect
               className="max-w-4xl justify-start p-0 animate-fade-up-slow"
-              textClassName="text-left text-5xl sm:text-6xl lg:text-7xl font-semibold tracking-tight leading-tight p-0"
+              textClassName="text-left text-3xl sm:text-5xl lg:text-7xl font-semibold tracking-tight leading-tight p-0"
               style={{ animationDelay: '0.15s' }}
             />
             <div

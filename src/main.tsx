@@ -21,7 +21,15 @@ ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
         <App />
-        <Toaster richColors closeButton position="top-right" />
+        <Toaster
+          richColors
+          closeButton
+          position="top-right"
+          toastOptions={{
+            style: { fontSize: '14px' },
+            className: 'max-sm:w-[90vw] max-sm:right-0 max-sm:left-auto',
+          }}
+        />
       </BrowserRouter>
     </QueryClientProvider>
   </React.StrictMode>,

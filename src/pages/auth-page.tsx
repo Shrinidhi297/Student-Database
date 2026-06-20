@@ -150,15 +150,15 @@ export function AuthPage() {
         <div className="absolute -bottom-32 -right-32 h-[400px] w-[400px] rounded-full bg-purple-500/10 blur-[120px] animate-float" style={{ animationDelay: '-2.5s' }} />
       </div>
 
-      <div className="w-full max-w-md animate-scale-in">
-        <Card>
-          <CardHeader className="space-y-4 text-center">
-            <div className="mx-auto inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:bg-primary/20">
-              <BookOpen className="h-6 w-6" />
+      <div className="w-full max-w-md animate-scale-in px-0 sm:px-4">
+        <Card className="border-x-0 sm:border-x">
+          <CardHeader className="space-y-4 text-center px-4 sm:px-6">
+            <div className="mx-auto inline-flex h-10 w-10 sm:h-12 sm:w-12 items-center justify-center rounded-2xl bg-primary/15 text-primary backdrop-blur-xl transition-all duration-300 hover:scale-110 hover:bg-primary/20">
+              <BookOpen className="h-5 w-5 sm:h-6 sm:w-6" />
             </div>
             <div>
-              <CardTitle className="text-2xl">Welcome to Scholar</CardTitle>
-              <CardDescription>Use your Supabase account to sign in or create a new account.</CardDescription>
+              <CardTitle className="text-xl sm:text-2xl">Welcome to Scholar</CardTitle>
+              <CardDescription className="text-xs sm:text-sm">Use your Supabase account to sign in or create a new account.</CardDescription>
             </div>
             <div className="grid grid-cols-2 gap-2 rounded-xl bg-white/[0.04] p-1 backdrop-blur-xl">
               <Tooltip>
@@ -187,7 +187,7 @@ export function AuthPage() {
               </Tooltip>
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-4 sm:px-6">
             <form className="grid gap-4" onSubmit={form.handleSubmit(onSubmit)}>
               {mode === 'signup' ? (
                 <div className="grid grid-cols-2 gap-3">

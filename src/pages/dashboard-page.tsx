@@ -402,8 +402,8 @@ export function DashboardPage() {
         }}
       />
 
-      <header className="border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-4 py-3 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
+      <header className="sticky top-0 z-30 border-b border-white/[0.06] bg-white/[0.02] backdrop-blur-2xl animate-fade-down">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-1 px-3 py-2.5 sm:gap-4 sm:px-6 sm:py-4 lg:px-8">
           <Link to="/" className="flex items-center gap-2 sm:gap-3">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-primary/30 to-purple-600/20 border border-white/15 backdrop-blur-xl sm:h-9 sm:w-9">
               <Users className="h-3.5 w-3.5 text-primary sm:h-4 sm:w-4" />
@@ -422,8 +422,8 @@ export function DashboardPage() {
               <p className="text-xs text-muted-foreground">Dashboard</p>
             </div>
           </Link>
-          <div className="flex items-center gap-2">
-            <div className="hidden items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2.5 py-1 sm:flex">
+          <div className="flex items-center gap-1 sm:gap-2">
+            <div className="hidden items-center gap-1.5 rounded-lg border border-white/[0.06] bg-white/[0.03] px-2 py-0.5 sm:flex sm:px-2.5 sm:py-1">
               <div className="flex h-5 w-5 items-center justify-center rounded-full bg-primary/20 text-[10px] font-medium text-primary">
                 {(session?.user.user_metadata?.first_name ?? session?.user.email ?? '?').charAt(0).toUpperCase()}
               </div>
@@ -433,7 +433,7 @@ export function DashboardPage() {
             </div>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button asChild variant="ghost" size="sm">
+                <Button asChild variant="ghost" size="sm" className="min-h-[36px] min-w-[36px] sm:min-h-0 sm:min-w-0">
                   <Link to="/">Home</Link>
                 </Button>
               </TooltipTrigger>
@@ -441,8 +441,8 @@ export function DashboardPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={() => setShowSignOutConfirm(true)}>
-                  <LogOut className="h-4 w-4" />
+                <Button variant="outline" size="sm" onClick={() => setShowSignOutConfirm(true)} className="min-h-[36px] sm:min-h-0">
+                  <LogOut className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Sign out</span>
                 </Button>
               </TooltipTrigger>
@@ -474,8 +474,8 @@ export function DashboardPage() {
             />
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={importing}>
-                  <Upload className="h-4 w-4" />
+                <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={importing} className="min-h-[40px] sm:min-h-0">
+                  <Upload className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">{importing ? 'Importing...' : 'Import CSV'}</span>
                 </Button>
               </TooltipTrigger>
@@ -483,8 +483,8 @@ export function DashboardPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button onClick={() => setDialogOpen(true)}>
-                  <Plus className="h-4 w-4" />
+                <Button size="sm" onClick={() => setDialogOpen(true)} className="min-h-[40px] sm:min-h-0">
+                  <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Add student</span>
                 </Button>
               </TooltipTrigger>
@@ -502,7 +502,7 @@ export function DashboardPage() {
           />
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="animate-stagger" style={{ animationDelay: '0.1s' }}>
             <StatCard title="Total" value={stats.total} icon={CalendarDays} />
           </div>
@@ -544,8 +544,8 @@ export function DashboardPage() {
             />
           </div>
 
-          <div className="mt-6 overflow-x-auto rounded-xl border border-white/[0.06]">
-            <div className="min-w-[640px]">
+          <div className="mt-4 sm:mt-6 overflow-x-auto rounded-xl border border-white/[0.06] -mx-4 sm:mx-0">
+            <div className="min-w-[600px] sm:min-w-0">
             <Table>
               <TableHeader>
                 <TableRow>
