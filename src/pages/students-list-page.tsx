@@ -1,20 +1,24 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import { FileJson, FileSpreadsheet, FileText, LogOut, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { AiSearch } from '@/components/ai-search';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/lib/supabase';
 import type { Student, StudentStatus } from '@/lib/types';
+import { buildFilterQuery } from '@/lib/filter-builder';
+import type { AiSearchFilters, AiSearchResult } from '@/lib/ai-search';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
 import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
 import { TextReveal } from '@/components/ui/cascade-text';
+import { toast } from 'sonner';
 
 const statusStyles: Record<StudentStatus, 'default' | 'secondary' | 'success' | 'muted'> = {
   active: 'success',
@@ -106,6 +110,10 @@ export function StudentsListPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [aiFilters, setAiFilters] = useState<AiSearchFilters | null>(null);
+  const [aiResults, setAiResults] = useState<Student[] | null>(null);
+  const [aiSearching, setAiSearching] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -169,11 +177,52 @@ export function StudentsListPage() {
     navigate('/auth', { replace: true });
   }
 
-  const stats = useMemo(() => ({
-    total: students.length,
-    active: students.filter((s) => s.status === 'active').length,
-    departments: new Set(students.map((s) => s.department).filter(Boolean)).size,
-  }), [students]);
+  const handleAiSearch = useCallback(
+    async (result: AiSearchResult) => {
+      const userId = session?.user.id;
+      if (!userId) {
+        return;
+      }
+
+      setAiFilters(result.filters);
+      setAiExplanation(result.explanation ?? null);
+      setAiSearching(true);
+
+      try {
+        const query = buildFilterQuery(userId, result.filters);
+        const { data, error } = await query;
+
+        if (error) {
+          throw error;
+        }
+
+        setAiResults((data ?? []) as Student[]);
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'AI search failed.');
+        setAiResults([]);
+      } finally {
+        setAiSearching(false);
+      }
+    },
+    [session],
+  );
+
+  const handleAiClear = useCallback(() => {
+    setAiFilters(null);
+    setAiResults(null);
+    setAiExplanation(null);
+  }, []);
+
+  const stats = useMemo(() => {
+    const source = aiResults ?? students;
+    return {
+      total: source.length,
+      active: source.filter((s) => s.status === 'active').length,
+      departments: new Set(source.map((s) => s.department).filter(Boolean)).size,
+    };
+  }, [students, aiResults]);
+
+  const displayStudents = aiResults ?? students;
 
   return (
     <div className="relative min-h-screen">
@@ -251,7 +300,7 @@ export function StudentsListPage() {
           <div className="flex gap-1 sm:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(students)} disabled={students.length === 0} className="min-h-[40px] sm:min-h-0">
+                <Button variant="outline" size="sm" onClick={() => exportToCSV(displayStudents)} disabled={displayStudents.length === 0} className="min-h-[40px] sm:min-h-0">
                   <FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Export CSV</span>
                 </Button>
@@ -260,7 +309,7 @@ export function StudentsListPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => exportToJSON(students)} disabled={students.length === 0} className="min-h-[40px] sm:min-h-0">
+                <Button variant="outline" size="sm" onClick={() => exportToJSON(displayStudents)} disabled={displayStudents.length === 0} className="min-h-[40px] sm:min-h-0">
                   <FileJson className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Export JSON</span>
                 </Button>
@@ -269,7 +318,7 @@ export function StudentsListPage() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => exportToPDF(students)} disabled={students.length === 0} className="min-h-[40px] sm:min-h-0">
+                <Button variant="outline" size="sm" onClick={() => exportToPDF(displayStudents)} disabled={displayStudents.length === 0} className="min-h-[40px] sm:min-h-0">
                   <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Export PDF</span>
                 </Button>
@@ -279,23 +328,33 @@ export function StudentsListPage() {
           </div>
         </section>
 
+        <section className="animate-fade-up" style={{ animationDelay: '0.08s' }}>
+          <AiSearch
+            onSearch={handleAiSearch}
+            onClear={handleAiClear}
+            activeFilters={aiFilters}
+            isSearching={aiSearching}
+            explanation={aiExplanation}
+          />
+        </section>
+
         <section className="grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 animate-fade-up" style={{ animationDelay: '0.08s' }}>
           <Card>
             <CardContent className="p-6">
               <p className="text-sm text-muted-foreground">Total Students</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight">{loading ? '...' : stats.total}</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight">{loading || aiSearching ? '...' : stats.total}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6">
               <p className="text-sm text-muted-foreground">Active</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight">{loading ? '...' : stats.active}</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight">{loading || aiSearching ? '...' : stats.active}</p>
             </CardContent>
           </Card>
           <Card>
             <CardContent className="p-6">
               <p className="text-sm text-muted-foreground">Departments</p>
-              <p className="mt-2 text-3xl font-semibold tracking-tight">{loading ? '...' : stats.departments}</p>
+              <p className="mt-2 text-3xl font-semibold tracking-tight">{loading || aiSearching ? '...' : stats.departments}</p>
             </CardContent>
           </Card>
         </section>
@@ -304,7 +363,7 @@ export function StudentsListPage() {
           <Card>
             <CardHeader>
               <CardTitle>All Students</CardTitle>
-              <CardDescription>{students.length} record{students.length !== 1 ? 's' : ''}</CardDescription>
+              <CardDescription>{displayStudents.length} record{displayStudents.length !== 1 ? 's' : ''}{aiFilters ? ' (AI filtered)' : ''}</CardDescription>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
               <div className="overflow-x-auto rounded-xl border border-white/[0.06] -mx-4 sm:mx-0">
@@ -326,20 +385,24 @@ export function StudentsListPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loading ? (
+                    {loading || aiSearching ? (
                       <TableRow>
                         <TableCell colSpan={12} className="py-12 text-center text-muted-foreground">
-                          Loading students...
+                          <span className="animate-fade-in">
+                            {aiSearching ? 'AI is searching...' : 'Loading students...'}
+                          </span>
                         </TableCell>
                       </TableRow>
-                    ) : students.length === 0 ? (
+                    ) : displayStudents.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={12} className="py-12 text-center text-muted-foreground">
-                          No students found. Add some from the dashboard.
+                          <span className="animate-fade-in">
+                            {aiFilters ? 'No students match your AI search.' : 'No students found. Add some from the dashboard.'}
+                          </span>
                         </TableCell>
                       </TableRow>
                     ) : (
-                      students.map((student, index) => (
+                      displayStudents.map((student, index) => (
                         <TableRow key={student.id} className="animate-stagger-fast" style={{ animationDelay: `${index * 0.02}s` }}>
                           <TableCell className="font-mono text-xs">{student.usn || '\u2014'}</TableCell>
                           <TableCell className="font-medium">{student.first_name} {student.last_name}</TableCell>
