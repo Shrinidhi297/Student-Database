@@ -1,16 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { FileJson, FileSpreadsheet, FileText, LogOut, Search, Users } from 'lucide-react';
+import { FileJson, FileSpreadsheet, FileText, LogOut, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
-import { AiSearch } from '@/components/ai-search';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { supabase } from '@/lib/supabase';
 import type { Student, StudentStatus } from '@/lib/types';
@@ -18,8 +15,6 @@ import { GeometricBackground } from '@/components/ui/shape-landing-hero';
 import { AlertDialog } from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
 import { TextReveal } from '@/components/ui/cascade-text';
-import { buildFilterQuery } from '@/lib/filter-builder';
-import type { AiSearchFilters, AiSearchResult } from '@/lib/ai-search';
 
 const statusStyles: Record<StudentStatus, 'default' | 'secondary' | 'success' | 'muted'> = {
   active: 'success',
@@ -111,11 +106,6 @@ export function StudentsListPage() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState<StudentStatus | 'all'>('all');
-  const [aiFilters, setAiFilters] = useState<AiSearchFilters | null>(null);
-  const [aiResults, setAiResults] = useState<Student[] | null>(null);
-  const [aiSearching, setAiSearching] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -174,62 +164,16 @@ export function StudentsListPage() {
     };
   }, []);
 
-  const handleAiSearch = useCallback(
-    async (result: AiSearchResult) => {
-      const userId = session?.user.id;
-      if (!userId) return;
-
-      setAiFilters(result.filters);
-      setAiSearching(true);
-
-      try {
-        const query = buildFilterQuery(userId, result.filters);
-        const { data, error } = await query;
-        if (error) throw error;
-        setAiResults((data ?? []) as Student[]);
-      } catch {
-        setAiResults([]);
-      } finally {
-        setAiSearching(false);
-      }
-    },
-    [session],
-  );
-
-  const handleAiClear = useCallback(() => {
-    setAiFilters(null);
-    setAiResults(null);
-  }, []);
-
   async function handleSignOut() {
     await supabase.auth.signOut();
     navigate('/auth', { replace: true });
   }
 
-  const filteredStudents = useMemo(() => {
-    if (aiResults !== null) return aiResults;
-
-    const query = search.trim().toLowerCase();
-    return students.filter((s) => {
-      const matchesStatus = statusFilter === 'all' || s.status === statusFilter;
-      const matchesSearch =
-        !query ||
-        [s.first_name, s.last_name, s.email ?? '', s.grade_level ?? '', s.usn ?? '', s.department ?? '']
-          .join(' ')
-          .toLowerCase()
-          .includes(query);
-      return matchesStatus && matchesSearch;
-    });
-  }, [search, statusFilter, students, aiResults]);
-
-  const stats = useMemo(() => {
-    const list = aiResults ?? students;
-    return {
-      total: list.length,
-      active: list.filter((s) => s.status === 'active').length,
-      departments: new Set(list.map((s) => s.department).filter(Boolean)).size,
-    };
-  }, [students, aiResults]);
+  const stats = useMemo(() => ({
+    total: students.length,
+    active: students.filter((s) => s.status === 'active').length,
+    departments: new Set(students.map((s) => s.department).filter(Boolean)).size,
+  }), [students]);
 
   return (
     <div className="relative min-h-screen">
@@ -357,47 +301,13 @@ export function StudentsListPage() {
         </section>
 
         <section className="animate-fade-up" style={{ animationDelay: '0.1s' }}>
-          <AiSearch
-            onSearch={handleAiSearch}
-            onClear={handleAiClear}
-            activeFilters={aiFilters}
-            isSearching={aiSearching}
-          />
-        </section>
-
-        <section className="animate-fade-up" style={{ animationDelay: '0.13s' }}>
           <Card>
-            <CardHeader className="flex-col gap-4 space-y-0 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>All Students</CardTitle>
-                <CardDescription>{filteredStudents.length} record{filteredStudents.length !== 1 ? 's' : ''}</CardDescription>
-              </div>
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-                <div className="relative flex-1 sm:min-w-[220px]">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search students..."
-                    className="h-9 pl-8 text-sm"
-                  />
-                </div>
-                <Select
-                  className="h-9 w-full sm:w-40"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as StudentStatus | 'all')}
-                  options={[
-                    { label: 'All statuses', value: 'all' },
-                    { label: 'Active', value: 'active' },
-                    { label: 'Inactive', value: 'inactive' },
-                    { label: 'Graduated', value: 'graduated' },
-                  ]}
-                />
-              </div>
+            <CardHeader>
+              <CardTitle>All Students</CardTitle>
+              <CardDescription>{students.length} record{students.length !== 1 ? 's' : ''}</CardDescription>
             </CardHeader>
             <CardContent className="p-0 sm:p-6 sm:pt-0">
               <div className="overflow-x-auto rounded-xl border border-white/[0.06] -mx-4 sm:mx-0">
-                <div className="min-w-[600px] sm:min-w-0">
                 <Table>
                   <TableHeader>
                     <TableRow>
@@ -416,20 +326,20 @@ export function StudentsListPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {loading || aiSearching ? (
+                    {loading ? (
                       <TableRow>
                         <TableCell colSpan={12} className="py-12 text-center text-muted-foreground">
-                          {aiSearching ? 'AI is searching...' : 'Loading students...'}
+                          Loading students...
                         </TableCell>
                       </TableRow>
-                    ) : filteredStudents.length === 0 ? (
+                    ) : students.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={12} className="py-12 text-center text-muted-foreground">
-                          {aiFilters ? 'No students match your AI search.' : 'No students found. Add some from the dashboard.'}
+                          No students found. Add some from the dashboard.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      filteredStudents.map((student, index) => (
+                      students.map((student, index) => (
                         <TableRow key={student.id} className="animate-stagger-fast" style={{ animationDelay: `${index * 0.02}s` }}>
                           <TableCell className="font-mono text-xs">{student.usn || '\u2014'}</TableCell>
                           <TableCell className="font-medium">{student.first_name} {student.last_name}</TableCell>
@@ -450,7 +360,6 @@ export function StudentsListPage() {
                     )}
                   </TableBody>
                 </Table>
-                </div>
               </div>
             </CardContent>
           </Card>
