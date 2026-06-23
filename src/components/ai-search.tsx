@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { History, Sparkles, Search as SearchIcon, X, TrendingUp } from 'lucide-react';
+import { History, Sparkles, Search as SearchIcon, X, TrendingUp, Loader2 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,27 +13,42 @@ export type AiSearchProps = {
   onClear: () => void;
   activeFilters: AiSearchFilters | null;
   isSearching: boolean;
+  explanation?: string | null;
 };
 
-export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSearchProps) {
+export function AiSearch({ onSearch, onClear, activeFilters, isSearching, explanation }: AiSearchProps) {
   const [input, setInput] = useState('');
   const [error, setError] = useState('');
   const [recentSearches, setRecentSearches] = useState<string[]>(getRecentSearches());
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
+  const [selectedIndex, setSelectedIndex] = useState(-1);
   const inputRef = useRef<HTMLInputElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
+
+  // Combine recent searches and suggestions for keyboard navigation
+  const allSuggestions = [
+    ...recentSearches.map((q) => ({ text: q, type: 'recent' as const })),
+    ...SUGGESTED_QUERIES.map((q) => ({ text: q, type: 'suggested' as const })),
+  ];
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
         setShowSuggestions(false);
         setShowHistory(false);
+        setSelectedIndex(-1);
       }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Reset selected index when suggestions change
+  useEffect(() => {
+    setSelectedIndex(-1);
+  }, [showSuggestions, showHistory, input]);
 
   const handleSearch = useCallback(
     async (query: string) => {
@@ -45,6 +60,7 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
       setError('');
       setShowSuggestions(false);
       setShowHistory(false);
+      setSelectedIndex(-1);
 
       const result = await parseNaturalLanguage(trimmed);
 
@@ -72,6 +88,7 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
     (query: string) => {
       setInput(query);
       setShowSuggestions(false);
+      setSelectedIndex(-1);
       void handleSearch(query);
     },
     [handleSearch],
@@ -81,14 +98,51 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
     (query: string) => {
       setInput(query);
       setShowHistory(false);
+      setSelectedIndex(-1);
       void handleSearch(query);
     },
     [handleSearch],
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      const items = showHistory
+        ? recentSearches.map((q) => ({ text: q, type: 'recent' as const }))
+        : showSuggestions
+          ? allSuggestions
+          : [];
+
+      if (items.length === 0) return;
+
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev < items.length - 1 ? prev + 1 : 0));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setSelectedIndex((prev) => (prev > 0 ? prev - 1 : items.length - 1));
+      } else if (e.key === 'Enter' && selectedIndex >= 0) {
+        e.preventDefault();
+        const selected = items[selectedIndex];
+        if (selected) {
+          setInput(selected.text);
+          setShowSuggestions(false);
+          setShowHistory(false);
+          setSelectedIndex(-1);
+          void handleSearch(selected.text);
+        }
+      } else if (e.key === 'Escape') {
+        setShowSuggestions(false);
+        setShowHistory(false);
+        setSelectedIndex(-1);
+      }
+    },
+    [showSuggestions, showHistory, recentSearches, allSuggestions, selectedIndex, handleSearch],
+  );
+
   const handleClear = useCallback(() => {
     setInput('');
     setError('');
+    setSelectedIndex(-1);
     onClear();
   }, [onClear]);
 
@@ -109,7 +163,11 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
           )}
         >
           <div className="flex items-center pl-4 text-muted-foreground">
-            <Sparkles className="h-4 w-4 text-primary/70" />
+            {isSearching ? (
+              <Loader2 className="h-4 w-4 text-primary/70 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4 text-primary/70" />
+            )}
           </div>
           <Input
             ref={inputRef}
@@ -123,6 +181,7 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
                 setShowSuggestions(true);
               }
             }}
+            onKeyDown={handleKeyDown}
             placeholder="Ask AI to find students..."
             className="border-0 bg-transparent pl-3 pr-2 shadow-none focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/60"
           />
@@ -165,6 +224,12 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
         </div>
       )}
 
+      {explanation && !error && filtersArray.length > 0 && (
+        <div className="mt-2 animate-fade-down rounded-xl border border-primary/20 bg-primary/5 px-4 py-2 backdrop-blur-xl">
+          <p className="text-xs text-primary/80">{explanation}</p>
+        </div>
+      )}
+
       {filtersArray.length > 0 && (
         <div className="mt-3 flex animate-fade-up flex-wrap items-center gap-2">
           <span className="text-xs font-medium text-muted-foreground/60">Filters:</span>
@@ -198,19 +263,22 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
       )}
 
       {showSuggestions && !input && (
-        <div className="glass-strong absolute left-0 right-0 top-full z-20 mt-2 max-h-80 overflow-y-auto rounded-2xl p-3 animate-fade-down">
+        <div ref={suggestionsRef} className="glass-strong absolute left-0 right-0 top-full z-20 mt-2 max-h-80 overflow-y-auto rounded-2xl p-3 animate-fade-down">
           {recentSearches.length > 0 && (
             <div className="mb-3">
               <div className="mb-1.5 flex items-center gap-1.5 px-2 text-xs font-medium text-muted-foreground/60">
                 <History className="h-3 w-3" />
                 Recent searches
               </div>
-              {recentSearches.map((query) => (
+              {recentSearches.map((query, index) => (
                 <button
                   key={query}
                   type="button"
                   onClick={() => handleHistoryClick(query)}
-                  className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                  className={cn(
+                    'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground',
+                    selectedIndex === index && 'bg-white/[0.06] text-foreground',
+                  )}
                 >
                   <History className="h-3 w-3 shrink-0 text-muted-foreground/40" />
                   <span className="truncate">{query}</span>
@@ -224,17 +292,26 @@ export function AiSearch({ onSearch, onClear, activeFilters, isSearching }: AiSe
               <TrendingUp className="h-3 w-3" />
               Suggestions
             </div>
-            {SUGGESTED_QUERIES.map((query) => (
+            {SUGGESTED_QUERIES.map((query, index) => (
               <button
                 key={query}
                 type="button"
                 onClick={() => handleSuggestionClick(query)}
-                className="flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground"
+                className={cn(
+                  'flex w-full items-center gap-2 rounded-xl px-3 py-2 text-left text-sm text-muted-foreground transition-colors hover:bg-white/[0.06] hover:text-foreground',
+                  selectedIndex === recentSearches.length + index && 'bg-white/[0.06] text-foreground',
+                )}
               >
                 <Sparkles className="h-3 w-3 shrink-0 text-primary/40" />
                 <span className="truncate">{query}</span>
               </button>
             ))}
+          </div>
+
+          <div className="mt-2 border-t border-white/[0.06] px-2 pt-2">
+            <p className="text-[10px] text-muted-foreground/40">
+              Use \u2191\u2193 to navigate, Enter to select, Esc to close
+            </p>
           </div>
         </div>
       )}

@@ -42,6 +42,7 @@ export function DashboardPage() {
   const [aiFilters, setAiFilters] = useState<AiSearchFilters | null>(null);
   const [aiResults, setAiResults] = useState<Student[] | null>(null);
   const [aiSearching, setAiSearching] = useState(false);
+  const [aiExplanation, setAiExplanation] = useState<string | null>(null);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
 
   useEffect(() => {
@@ -124,6 +125,7 @@ export function DashboardPage() {
       }
 
       setAiFilters(result.filters);
+      setAiExplanation(result.explanation ?? null);
       setAiSearching(true);
 
       try {
@@ -148,6 +150,7 @@ export function DashboardPage() {
   const handleAiClear = useCallback(() => {
     setAiFilters(null);
     setAiResults(null);
+    setAiExplanation(null);
   }, []);
 
   const filteredStudents = useMemo(() => {
@@ -499,6 +502,7 @@ export function DashboardPage() {
             onClear={handleAiClear}
             activeFilters={aiFilters}
             isSearching={aiSearching}
+            explanation={aiExplanation}
           />
         </section>
 

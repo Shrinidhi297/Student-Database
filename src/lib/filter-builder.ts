@@ -72,6 +72,25 @@ export function formatFilterBadge(field: string, value: unknown): string {
     return '';
   }
 
+  const fieldLabels: Record<string, string> = {
+    first_name: 'Name',
+    last_name: 'Last Name',
+    email: 'Email',
+    phone: 'Phone',
+    grade_level: 'Grade',
+    status: 'Status',
+    enrollment_date: 'Enrolled',
+    gpa: 'GPA',
+    notes: 'Notes',
+    usn: 'USN',
+    department: 'Dept',
+    semester: 'Sem',
+    attendance: 'Attendance',
+    marks: 'Marks',
+  };
+
+  const label = fieldLabels[field] ?? field;
+
   const isCondition = typeof value === 'object' && value !== null && 'operator' in value;
   if (isCondition) {
     const cond = value as FilterCondition;
@@ -87,10 +106,10 @@ export function formatFilterBadge(field: string, value: unknown): string {
     };
     const op = opMap[cond.operator] ?? cond.operator;
     if (cond.operator === 'between' && cond.value2 !== undefined) {
-      return `${field} ${cond.value}${op}${cond.value2}`;
+      return `${label} ${cond.value}${op}${cond.value2}`;
     }
-    return `${field} ${op} ${cond.value}`;
+    return `${label} ${op} ${cond.value}`;
   }
 
-  return `${field}: ${value}`;
+  return `${label}: ${value}`;
 }

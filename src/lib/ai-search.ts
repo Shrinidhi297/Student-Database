@@ -31,6 +31,7 @@ export type AiSearchFilters = {
 export type AiSearchResult = {
   filters: AiSearchFilters;
   raw_query: string;
+  explanation?: string;
 };
 
 const operatorSchema = z.enum(['eq', 'neq', 'gt', 'gte', 'lt', 'lte', 'contains', 'between']);
@@ -97,43 +98,87 @@ function buildSystemPrompt(): string {
     (f) => `  - "${f.name}" (${f.type}): ${f.description}`,
   ).join('\n');
 
-  return `You are a query parser for a student database. Convert natural language queries into structured JSON filters.
+  return `You are an intelligent query parser for a student database. Convert natural language queries into structured JSON filters.
 
 Available fields:
 ${fieldsDesc}
 
-Rules:
-1. Respond ONLY with valid JSON — no markdown, no code fences, no extra text.
-2. For exact matches use the field name directly with a string value: { "department": "CSE" }
-3. For comparisons use an object with operator and value:
+RESPONSE RULES:
+1. Respond ONLY with valid JSON — no markdown, no code fences, no explanations outside the JSON.
+2. The response must be a single JSON object with "filters" key and optional "explanation" key.
+
+FILTER CONSTRUCTION RULES:
+
+A) EXACT MATCH — use the field name directly with a string/number value:
+   - "CSE students" → { "department": "CSE" }
+   - "semester 3" → { "semester": 3 }
+   - "active students" → { "status": "active" }
+
+B) COMPARISONS — use an object with "operator" and "value":
    Operators: "eq", "neq", "gt", "gte", "lt", "lte", "contains", "between"
-   Examples:
    - "attendance below 75%" → { "attendance": { "operator": "lt", "value": 75 } }
    - "marks above 85" → { "marks": { "operator": "gt", "value": 85 } }
+   - "GPA at least 3.5" → { "gpa": { "operator": "gte", "value": 3.5 } }
    - "attendance between 60 and 80" → { "attendance": { "operator": "between", "value": 60, "value2": 80 } }
-   - "name containing Rahul" → { "first_name": { "operator": "contains", "value": "Rahul" } }
-4. For "top N" queries add a "limit" field and optionally "order_by":
-   - "top 10 students by marks" → { "order_by": { "field": "marks", "direction": "desc" }, "limit": 10 }
-5. For "final year" / "last semester" use the appropriate field comparison.
-6. Combine multiple conditions in a single "filters" object as separate keys (AND logic).
-7. If the query mentions a name without specifying first/last, match against first_name with "contains".
-8. If the query cannot be understood, return: { "filters": {}, "explanation": "Unable to understand search query. Please try again." }
 
-Example outputs:
+C) TEXT SEARCH — use "contains" for partial matches:
+   - "name containing Rahul" → { "first_name": { "operator": "contains", "value": "Rahul" } }
+   - "email with gmail" → { "email": { "operator": "contains", "value": "gmail" } }
+
+D) NEGATION — use "neq" operator:
+   - "not active students" → { "status": { "operator": "neq", "value": "active" } }
+   - "not from CSE" → { "department": { "operator": "neq", "value": "CSE" } }
+
+E) TOP/BOTTOM QUERIES — combine "limit" and "order_by":
+   - "top 10 students by marks" → { "order_by": { "field": "marks", "direction": "desc" }, "limit": 10 }
+   - "bottom 5 by GPA" → { "order_by": { "field": "gpa", "direction": "asc" }, "limit": 5 }
+   - "best 3 students" → { "order_by": { "field": "marks", "direction": "desc" }, "limit": 3 }
+
+F) YEAR/SEMESTER MAPPING:
+   - "first year" / "freshman" → semester 1
+   - "second year" / "sophomore" → semester between 3 and 4
+   - "third year" / "junior" → semester between 5 and 6
+   - "final year" / "senior" / "last year" → semester 8
+   - "semester N" → semester N directly
+
+G) MULTIPLE CONDITIONS — combine all filters in the "filters" object (AND logic):
+   - "CSE students with GPA above 3.5" → { "department": "CSE", "gpa": { "operator": "gt", "value": 3.5 } }
+
+H) NAME HANDLING — if a name is mentioned without specifying first/last, use first_name with "contains":
+   - "find Rahul" → { "first_name": { "operator": "contains", "value": "Rahul" } }
+   - "students named Priya" → { "first_name": { "operator": "contains", "value": "Priya" } }
+
+I) DATE QUERIES — enrollment_date is in YYYY-MM-DD format:
+   - "enrolled in 2024" → { "enrollment_date": { "operator": "contains", "value": "2024" } }
+   - "enrolled after January 2024" → { "enrollment_date": { "operator": "gte", "value": "2024-01-01" } }
+
+J) UNUNDERSTANDABLE QUERIES — return empty filters:
+   { "filters": {}, "explanation": "Unable to understand search query. Please try again." }
+
+EXAMPLES:
 Query: "Show CSE students with attendance below 75%"
-{"filters":{"department":"CSE","attendance":{"operator":"lt","value":75}},"explanation":"CSE students with attendance under 75%"}
+→ {"filters":{"department":"CSE","attendance":{"operator":"lt","value":75}},"explanation":"CSE students with attendance under 75%"}
 
 Query: "Find students who scored above 85 marks"
-{"filters":{"marks":{"operator":"gt","value":85}},"explanation":"Students with marks above 85"}
+→ {"filters":{"marks":{"operator":"gt","value":85}},"explanation":"Students with marks above 85"}
 
 Query: "Show top 10 students by marks"
-{"filters":{"order_by":{"field":"marks","direction":"desc"},"limit":10},"explanation":"Top 10 students by marks"}
+→ {"filters":{"order_by":{"field":"marks","direction":"desc"},"limit":10},"explanation":"Top 10 students by marks"}
 
 Query: "Show final year students"
-{"filters":{"grade_level":{"operator":"contains","value":"12"}},"explanation":"Final year students"}
+→ {"filters":{"semester":8},"explanation":"Final year students (semester 8)"}
 
 Query: "Find students named Rahul"
-{"filters":{"first_name":{"operator":"contains","value":"Rahul"}},"explanation":"Students named Rahul"}`;
+→ {"filters":{"first_name":{"operator":"contains","value":"Rahul"}},"explanation":"Students named Rahul"}
+
+Query: "Not graduated students from ECE"
+→ {"filters":{"status":{"operator":"neq","value":"graduated"},"department":"ECE"},"explanation":"Non-graduated ECE students"}
+
+Query: "Students with GPA between 3 and 4"
+→ {"filters":{"gpa":{"operator":"between","value":3,"value2":4}},"explanation":"Students with GPA between 3 and 4"}
+
+Query: "Find gmail users"
+→ {"filters":{"email":{"operator":"contains","value":"gmail"}},"explanation":"Students with gmail email"}`;
 }
 
 function buildUserPrompt(query: string): string {
@@ -205,37 +250,38 @@ export function parseLocalFallback(query: string): AiSearchFilters {
   const filters: AiSearchFilters = {};
   const words = q.split(/\s+/).filter(Boolean);
 
-  // Status filters
+  // Status filters — with negation support
+  const negated = /\b(not|no|without|excluding|except)\b/.test(q);
   if (/\b(active|currently enrolled|enrolled)\b/.test(q)) {
-    filters.status = 'active';
-  } else if (/\b(inactive|not active|dropped)\b/.test(q)) {
-    filters.status = 'inactive';
-  } else if (/\b(graduated|alumni|completed)\b/.test(q)) {
-    filters.status = 'graduated';
+    filters.status = negated ? { operator: 'neq', value: 'active' } : 'active';
+  } else if (/\b(inactive|not active|dropped|discontinued)\b/.test(q)) {
+    filters.status = negated ? { operator: 'neq', value: 'inactive' } : 'inactive';
+  } else if (/\b(graduated|alumni|completed|passed out)\b/.test(q)) {
+    filters.status = negated ? { operator: 'neq', value: 'graduated' } : 'graduated';
   }
 
-  // Name filters — try explicit patterns first
+  // Name filters — try explicit patterns first (supports multi-word names)
   let capturedName: string | null = null;
 
-  // "students/named/called/called X", "name is X"
-  const explicitNameMatch = q.match(/(?:students?\s+(?:named|called|like)\s+|named\s+|called\s+|name\s+(?:is|like)\s+)(\w+)/i);
+  // "students/named/called X Y" (multi-word name support)
+  const explicitNameMatch = q.match(/(?:students?\s+(?:named|called|like)\s+|named\s+|called\s+|name\s+(?:is|like)\s+)(\w+(?:\s+\w+)?)/i);
   if (explicitNameMatch) {
-    capturedName = explicitNameMatch[1];
+    capturedName = explicitNameMatch[1].trim();
   }
 
   // "find/show/search X student" where X is not a keyword
   if (!capturedName) {
-    const findNameMatch = q.match(/(?:find|show|search)\s+(\w+)\s+student/i);
+    const findNameMatch = q.match(/(?:find|show|search|look\s+for)\s+(\w+)\s+student/i);
     if (findNameMatch && !isKeyword(findNameMatch[1])) {
       capturedName = findNameMatch[1];
     }
   }
 
-  // "find/show/search/list X" at end of query or as a single word (not a keyword, not a number)
+  // "find/show/search X" at end of query or as a single word (not a keyword, not a number)
   if (!capturedName && words.length <= 3) {
     for (const word of words) {
       const clean = word.replace(/[^a-zA-Z]/g, '');
-      if (clean.length >= 2 && !isKeyword(clean) && !/^\d+$/.test(clean) && !['cse', 'aiml', 'ece', 'eee', 'me', 'ce', 'ise', 'it', 'gpa'].includes(clean)) {
+      if (clean.length >= 2 && !isKeyword(clean) && !/^\d+$/.test(clean) && !['cse', 'aiml', 'ece', 'eee', 'me', 'ce', 'ise', 'it', 'gpa', 'cgpa'].includes(clean)) {
         capturedName = clean;
         break;
       }
@@ -246,12 +292,13 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     filters.first_name = { operator: 'contains', value: capturedName };
   }
 
-  // Department filters
+  // Department filters — with negation and more aliases
   const deptMatch = q.match(/(?:department|dept|branch|from)\s*[:\s]*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT|CH|BT|AE|RE|PE|SE)/i)
     || q.match(/\b(CSE|AIML|ECE|EEE|ME|CE|ISE|IT)\b/i);
   if (deptMatch) {
     const dept = deptMatch[1].toUpperCase();
-    filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+    const deptName = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+    filters.department = negated ? { operator: 'neq', value: deptName } : deptName;
   }
 
   // "from department" pattern
@@ -259,7 +306,8 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     const fromDeptMatch = q.match(/from\s+(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i);
     if (fromDeptMatch) {
       const dept = fromDeptMatch[1].toUpperCase();
-      filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+      const deptName = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+      filters.department = negated ? { operator: 'neq', value: deptName } : deptName;
     }
   }
 
@@ -268,7 +316,8 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     const deptEqMatch = q.match(/(?:dept|department)\s+(?:of|is|=|:)\s*(CSE|AIML|AI|ML|ECE|EEE|ME|CE|ISE|IT)\b/i);
     if (deptEqMatch) {
       const dept = deptEqMatch[1].toUpperCase();
-      filters.department = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+      const deptName = dept === 'AI' || dept === 'ML' ? 'AIML' : dept;
+      filters.department = negated ? { operator: 'neq', value: deptName } : deptName;
     }
   }
 
@@ -277,10 +326,10 @@ export function parseLocalFallback(query: string): AiSearchFilters {
   if (semMatch) {
     filters.semester = parseInt(semMatch[1], 10);
   }
-  if (/\bfinal\s*year\b/.test(q) || /\blast\s*year\b/.test(q)) {
+  if (/\bfinal\s*year\b/.test(q) || /\blast\s*year\b/.test(q) || /\bsenior\b/.test(q)) {
     filters.semester = 8;
   }
-  if (/\bfirst\s*year\b/.test(q)) {
+  if (/\bfirst\s*year\b/.test(q) || /\bfreshman\b/.test(q)) {
     filters.semester = 1;
   }
   if (/\bsecond\s*year\b/.test(q) || /\bsophomore\b/.test(q)) {
@@ -312,27 +361,34 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     filters.grade_level = { operator: 'contains', value: gradeMatch[1] };
   }
 
-  // GPA filters — support "cgpa" and "gpa"
+  // GPA/CGPA filters — supports "cgpa" and "gpa", range queries, and negation
   const gpaPattern = /\b(gpa|cgpa)\b/i;
   if (gpaPattern.test(q)) {
-    const gpaAboveMatch = q.match(/\bgpa\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
-    const gpaBelowMatch = q.match(/\bgpa\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
-    if (gpaAboveMatch) {
+    const gpaAboveMatch = q.match(/\b(?:gpa|cgpa)\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
+    const gpaBelowMatch = q.match(/\b(?:gpa|cgpa)\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
+    const gpaBetweenMatch = q.match(/\b(?:gpa|cgpa)\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
+    const gpaExactMatch = q.match(/\b(?:gpa|cgpa)\s*(?:of|=|is|:)\s*(\d+(?:\.\d+)?)/i);
+
+    if (gpaBetweenMatch) {
+      filters.gpa = { operator: 'between', value: parseFloat(gpaBetweenMatch[1]), value2: parseFloat(gpaBetweenMatch[2]) };
+    } else if (gpaAboveMatch) {
       filters.gpa = { operator: 'gte', value: parseFloat(gpaAboveMatch[1]) };
     } else if (gpaBelowMatch) {
       filters.gpa = { operator: 'lte', value: parseFloat(gpaBelowMatch[1]) };
+    } else if (gpaExactMatch) {
+      filters.gpa = { operator: 'gte', value: parseFloat(gpaExactMatch[1]) };
     } else {
-      const gpaGenericMatch = q.match(/\bgpa\s*(?:of\s*)?(\d+(?:\.\d+)?)/i);
-      if (gpaGenericMatch && !/\b(above|below|over|under|less|more|greater|higher|than)\b/.test(q)) {
+      const gpaGenericMatch = q.match(/\b(?:gpa|cgpa)\s*(?:of\s*)?(\d+(?:\.\d+)?)/i);
+      if (gpaGenericMatch && !/\b(above|below|over|under|less|more|greater|higher|than|between)\b/.test(q)) {
         filters.gpa = { operator: 'gte', value: parseFloat(gpaGenericMatch[1]) };
       }
     }
   }
 
-  // Attendance filters
+  // Attendance filters — with range and negation support
+  const attBetweenMatch = q.match(/attendance\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
   const attBelowMatch = q.match(/attendance\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
   const attAboveMatch = q.match(/attendance\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least)\s*(\d+(?:\.\d+)?)/i);
-  const attBetweenMatch = q.match(/attendance\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
   if (attBetweenMatch) {
     filters.attendance = { operator: 'between', value: parseFloat(attBetweenMatch[1]), value2: parseFloat(attBetweenMatch[2]) };
   } else if (attBelowMatch) {
@@ -346,16 +402,19 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     }
   }
 
-  // Marks filters
+  // Marks filters — with range and "scored X" patterns
+  const marksBetweenMatch = q.match(/marks?\s*(?:between)\s*(\d+(?:\.\d+)?)\s*(?:and|to|-)\s*(\d+(?:\.\d+)?)/i);
   const marksAboveMatch = q.match(/marks?\s*(?:above|over|greater|more|higher|>\s*|>=\s*|at\s+least|scored?\s*(?:above|over|more|greater))\s*(\d+(?:\.\d+)?)/i);
   const marksBelowMatch = q.match(/marks?\s*(?:below|under|less|fewer|<\s*|<=\s*|at\s+most)\s*(\d+(?:\.\d+)?)/i);
-  if (marksAboveMatch) {
+  if (marksBetweenMatch) {
+    filters.marks = { operator: 'between', value: parseFloat(marksBetweenMatch[1]), value2: parseFloat(marksBetweenMatch[2]) };
+  } else if (marksAboveMatch) {
     filters.marks = { operator: 'gt', value: parseFloat(marksAboveMatch[1]) };
   } else if (marksBelowMatch) {
     filters.marks = { operator: 'lt', value: parseFloat(marksBelowMatch[1]) };
   }
 
-  // "whose marks are above/below X"
+  // "whose marks are above/below X" and "scored X marks"
   if (!filters.marks) {
     const marks2 = q.match(/(?:scored?|got|have|with)\s+(?:above|over|more\s+than|>\s*)\s*(\d+(?:\.\d+)?)\s*(?:marks?|score)/i);
     if (marks2) {
@@ -363,8 +422,66 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     }
   }
 
+  // "scored X" or "got X" without "marks" keyword
+  if (!filters.marks) {
+    const marks3 = q.match(/(?:scored?|got)\s+(\d+(?:\.\d+)?)\s*(?:marks?|score|points)/i);
+    if (marks3) {
+      filters.marks = { operator: 'gte', value: parseFloat(marks3[1]) };
+    }
+  }
+
+  // Email filters — domain or partial match
+  if (!filters.email) {
+    const emailDomainMatch = q.match(/(?:email|e-mail|mail)\s*(?:with|from|contains?|having)\s*(\w+(?:\.\w+)?)\b/i);
+    if (emailDomainMatch) {
+      filters.email = { operator: 'contains', value: emailDomainMatch[1] };
+    }
+  }
+
+  // USN/student ID filter
+  if (!filters.usn) {
+    const usnMatch = q.match(/(?:usn|student\s*id|id\s*number)\s*(?:is|of|=|:)?\s*(\w+)/i);
+    if (usnMatch) {
+      filters.usn = { operator: 'contains', value: usnMatch[1] };
+    }
+  }
+
+  // Phone number filter
+  if (!filters.phone) {
+    const phoneMatch = q.match(/(?:phone|mobile|contact|number)\s*(?:is|of|=|:)?\s*([\d\s\-+()]+)/i);
+    if (phoneMatch) {
+      filters.phone = { operator: 'contains', value: phoneMatch[1].trim() };
+    }
+  }
+
+  // Enrollment date filters — "enrolled in 2024", "joined 2023", "enrolled after X"
+  if (!filters.enrollment_date) {
+    const enrolledYearMatch = q.match(/(?:enrolled|joined|admitted|enrollment)\s+(?:in\s+)?(\d{4})/i);
+    if (enrolledYearMatch) {
+      filters.enrollment_date = { operator: 'contains', value: enrolledYearMatch[1] };
+    }
+  }
+  if (!filters.enrollment_date) {
+    const enrolledAfterMatch = q.match(/(?:enrolled|joined|admitted)\s+(?:after|since|from)\s+(\w+\s+\d{4}|\d{4})/i);
+    if (enrolledAfterMatch) {
+      const dateStr = enrolledAfterMatch[1];
+      const parsed = dateStr.match(/(\d{4})/);
+      if (parsed) {
+        filters.enrollment_date = { operator: 'gte', value: `${parsed[1]}-01-01` };
+      }
+    }
+  }
+
+  // Notes filter
+  if (!filters.notes) {
+    const notesMatch = q.match(/(?:notes?|remarks?|comments?)\s*(?:contains?|with|having)\s+(.+)/i);
+    if (notesMatch) {
+      filters.notes = { operator: 'contains', value: notesMatch[1].trim() };
+    }
+  }
+
   // Top N students — detect field for ordering
-  const topMatch = q.match(/top\s+(\d+)/i);
+  const topMatch = q.match(/(?:top|best|highest|highest)\s+(\d+)/i);
   if (topMatch) {
     filters.limit = parseInt(topMatch[1], 10);
     if (/\b(marks?|score)\b/.test(q)) {
@@ -379,7 +496,7 @@ export function parseLocalFallback(query: string): AiSearchFilters {
   }
 
   // Last / bottom N students
-  const bottomMatch = q.match(/(?:bottom|last|worst|lowest)\s+(\d+)/i);
+  const bottomMatch = q.match(/(?:bottom|last|worst|lowest|poorest)\s+(\d+)/i);
   if (bottomMatch && !filters.limit) {
     filters.limit = parseInt(bottomMatch[1], 10);
     if (/\b(marks?|score)\b/.test(q)) {
@@ -391,6 +508,11 @@ export function parseLocalFallback(query: string): AiSearchFilters {
     } else {
       filters.order_by = { field: 'created_at', direction: 'desc' };
     }
+  }
+
+  // "show all" / "list all" / "everyone" — no filter needed
+  if (/\b(show|list|get|display|fetch|load|view)\s+(all|everyone|every|whole)\b/.test(q)) {
+    return {};
   }
 
   return filters;
