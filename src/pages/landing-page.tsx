@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { ArrowRight, LayoutDashboard, ShieldCheck, Users, Sparkles, BrainCircuit } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { FloatingAiAssistant } from '@/components/ui/ai-assistat';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,6 +41,7 @@ const features = [
 export function LandingPage() {
   const [isSignedIn, setIsSignedIn] = useState(false);
   const [demoQuery, setDemoQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     let active = true;
@@ -253,10 +254,11 @@ export function LandingPage() {
                   className="w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' && demoQuery.trim()) {
+                      const q = encodeURIComponent(demoQuery.trim());
                       if (isSignedIn) {
-                        window.location.href = '/dashboard';
+                        navigate(`/dashboard?q=${q}`);
                       } else {
-                        window.location.href = '/auth';
+                        navigate(`/auth?redirect=/dashboard&q=${q}`);
                       }
                     }
                   }}
@@ -268,10 +270,11 @@ export function LandingPage() {
                       className="ml-2 shrink-0 rounded-xl ripple-btn"
                       onClick={() => {
                         if (demoQuery.trim()) {
+                          const q = encodeURIComponent(demoQuery.trim());
                           if (isSignedIn) {
-                            window.location.href = '/dashboard';
+                            navigate(`/dashboard?q=${q}`);
                           } else {
-                            window.location.href = '/auth';
+                            navigate(`/auth?redirect=/dashboard&q=${q}`);
                           }
                         }
                       }}
@@ -292,10 +295,11 @@ export function LandingPage() {
                       type="button"
                       onClick={() => {
                         setDemoQuery(query);
+                        const q = encodeURIComponent(query);
                         if (isSignedIn) {
-                          window.location.href = '/dashboard';
+                          navigate(`/dashboard?q=${q}`);
                         } else {
-                          window.location.href = '/auth';
+                          navigate(`/auth?redirect=/dashboard&q=${q}`);
                         }
                       }}
                       className="rounded-full border border-white/[0.06] bg-white/[0.03] px-3 py-1.5 text-xs text-muted-foreground backdrop-blur-xl transition-all duration-200 hover:border-primary/20 hover:bg-primary/5 hover:text-primary hover:shadow-[0_0_20px_rgba(133,102,255,0.1)]"

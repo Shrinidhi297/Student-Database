@@ -4,7 +4,7 @@ import type { Session } from '@supabase/supabase-js';
 import { format } from 'date-fns';
 import { CalendarDays, Edit, GraduationCap, Plus, Search, Trash2, Upload, UserMinus, UserPlus, LogOut, Users } from 'lucide-react';
 import { toast } from 'sonner';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { StudentDialog } from '@/components/student-dialog';
 import { AiSearch } from '@/components/ai-search';
 import { AlertDialog } from '@/components/ui/alert-dialog';
@@ -18,6 +18,7 @@ import { supabase } from '@/lib/supabase';
 import type { Student, StudentStatus } from '@/lib/types';
 import { studentSchema, type StudentFormInput } from '@/lib/validation';
 import { buildFilterQuery } from '@/lib/filter-builder';
+import { parseNaturalLanguage } from '@/lib/query-parser';
 import type { AiSearchFilters, AiSearchResult } from '@/lib/ai-search';
 import { GeometricBackground } from '@/components/ui/shape-landing-hero';
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfaces-tooltip';
@@ -33,6 +34,7 @@ export function DashboardPage() {
   const [session, setSession] = useState<Session | null>(null);
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StudentStatus | 'all'>('all');
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -117,6 +119,37 @@ export function DashboardPage() {
       void supabase.removeChannel(channel);
     };
   }, [queryClient, userId]);
+
+  useEffect(() => {
+    const q = searchParams.get('q');
+    if (!q || !userId) return;
+
+    setSearchParams({}, { replace: true });
+
+    const runSearch = async () => {
+      setAiSearching(true);
+      try {
+        const result = await parseNaturalLanguage(q);
+        if (result.ok) {
+          setAiFilters(result.result.filters);
+          setAiExplanation(result.result.explanation ?? null);
+          const query = buildFilterQuery(userId, result.result.filters);
+          const { data, error } = await query;
+          if (error) throw error;
+          setAiResults((data ?? []) as Student[]);
+        } else {
+          toast.error(result.error);
+        }
+      } catch (error) {
+        toast.error(error instanceof Error ? error.message : 'AI search failed.');
+        setAiResults([]);
+      } finally {
+        setAiSearching(false);
+      }
+    };
+
+    void runSearch();
+  }, [searchParams, setSearchParams, userId]);
 
   const handleAiSearch = useCallback(
     async (result: AiSearchResult) => {
