@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { BookOpen, LoaderCircle } from 'lucide-react';
+import { BookOpen, LoaderCircle, Eye, EyeOff } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +14,7 @@ import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/interfa
 export function AuthPage() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [statusMessage, setStatusMessage] = useState('');
   const navigate = useNavigate();
@@ -203,7 +204,22 @@ export function AuthPage() {
                 <Input type="email" placeholder="you@example.com" {...form.register('email')} />
               </Field>
               <Field label="Password" error={form.formState.errors.password?.message}>
-                <Input type="password" placeholder="At least 8 characters" {...form.register('password')} />
+                <div className="relative">
+                  <Input
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="At least 8 characters"
+                    className="pr-10"
+                    {...form.register('password')}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
               </Field>
 
               {statusMessage ? (
