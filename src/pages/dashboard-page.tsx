@@ -703,6 +703,7 @@ export function DashboardPage() {
         title="Sign out"
         description="Are you sure you want to sign out? Your data is saved and will be here when you return."
         onConfirm={() => void handleSignOut()}
+        confirmLabel="Sign out"
       />
     </div>
   );

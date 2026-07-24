@@ -1,12 +1,13 @@
 import { createPortal } from 'react-dom';
 import { Button } from './button';
 
-export function AlertDialog({ open, onOpenChange, title, description, onConfirm }: {
+export function AlertDialog({ open, onOpenChange, title, description, onConfirm, confirmLabel = 'Delete' }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   description?: string;
   onConfirm: () => void;
+  confirmLabel?: string;
 }) {
   if (!open) {
     return null;
@@ -33,7 +34,7 @@ export function AlertDialog({ open, onOpenChange, title, description, onConfirm 
               onOpenChange(false);
             }}
           >
-            Delete
+            {confirmLabel}
           </Button>
         </div>
       </div>

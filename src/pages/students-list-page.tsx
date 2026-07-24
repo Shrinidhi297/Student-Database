@@ -693,6 +693,7 @@ export function StudentsListPage() {
         title="Sign out"
         description="Are you sure you want to sign out?"
         onConfirm={() => void handleSignOut()}
+        confirmLabel="Sign out"
       />
     </div>
   );

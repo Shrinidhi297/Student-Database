@@ -370,7 +370,7 @@ export function LandingPage() {
       </section>
       </ScrollReveal>
 
-      <FloatingAiAssistant />
+      <FloatingAiAssistant isSignedIn={isSignedIn} />
     </main>
   );
 }

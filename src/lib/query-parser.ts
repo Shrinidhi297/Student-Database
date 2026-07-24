@@ -175,6 +175,39 @@ export async function parseNaturalLanguage(query: string): Promise<ParseResult> 
   };
 }
 
+export type NavigationIntent = {
+  route: string;
+  label: string;
+};
+
+export function parseNavigationIntent(query: string): NavigationIntent | null {
+  const navigationRules: Array<{ route: string; label: string; pattern: RegExp }> = [
+    {
+      route: '/students',
+      label: 'Student directory',
+      pattern: /\b(go to|open|navigate to|take me to|visit|show me|show|browse)\s+(the\s+)?(students|student list|student records|student directory)\b/i,
+    },
+    {
+      route: '/dashboard',
+      label: 'Dashboard',
+      pattern: /\b(go to|open|navigate to|take me to|visit|show me|show|browse)\s+(the\s+)?dashboard\b/i,
+    },
+    {
+      route: '/auth',
+      label: 'Authentication page',
+      pattern: /\b(go to|open|navigate to|take me to|visit|show me|show|browse)\s+(the\s+)?(login|sign in|auth|authentication)\b/i,
+    },
+  ];
+
+  for (const rule of navigationRules) {
+    if (rule.pattern.test(query)) {
+      return { route: rule.route, label: rule.label };
+    }
+  }
+
+  return null;
+}
+
 export const SUGGESTED_QUERIES = [
   'Show active students',
   'Find students with GPA above 3.5',

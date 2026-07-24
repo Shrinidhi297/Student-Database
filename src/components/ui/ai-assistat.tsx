@@ -1,46 +1,80 @@
 import { useState, useRef, useEffect } from "react";
-import { Send, Sparkles, X, Loader2, MessageSquare } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Sparkles, X, Loader2, MessageSquare } from "lucide-react";
+import { AlertDialog } from "./alert-dialog";
+import { parseNavigationIntent } from "@/lib/query-parser";
 
 interface AIMessageBarProps {
   title?: string;
   description?: string;
+  isSignedIn?: boolean;
 }
 
-export function AIMessageBar({ title = "AI Assistant", description }: AIMessageBarProps) {
-  const [input, setInput] = useState<string>("");
+const PRESET_QUERIES_AUTHENTICATED = [
+  {
+    label: "Open dashboard",
+    text: "Please open the dashboard.",
+  },
+  {
+    label: "Show students",
+    text: "Please show the student directory.",
+  },
+  {
+    label: "Get help",
+    text: "Help me use the assistant.",
+  },
+];
+
+const PRESET_QUERIES_ANONYMOUS = [
+  {
+    label: "Take me to login",
+    text: "Please navigate to the login page.",
+  },
+  {
+    label: "Get help",
+    text: "Help me use the assistant.",
+  },
+];
+
+export function AIMessageBar({ title = "AI Assistant", description, isSignedIn }: AIMessageBarProps) {
+  const navigate = useNavigate();
   const [messages, setMessages] = useState<{ text: string; isUser: boolean }[]>([]);
   const [isTyping, setIsTyping] = useState<boolean>(false);
+  const [confirmOpen, setConfirmOpen] = useState<boolean>(false);
+  const [pendingIntent, setPendingIntent] = useState<{ route: string; label: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const simulateResponse = (userMessage: string) => {
+  const simulateResponse = (_userMessage: string, overrideResponse?: string) => {
     setIsTyping(true);
 
-    let response = "Hi there! I'm your AI assistant. How can I help you today?";
-
-    if (userMessage.toLowerCase().includes("hello") || userMessage.toLowerCase().includes("hi")) {
-      response = "Hello! I'm your friendly AI assistant. What can I do for you?";
-    } else if (userMessage.toLowerCase().includes("help")) {
-      response = "I'm here to help! You can ask me questions, request information, or just chat.";
-    } else if (userMessage.toLowerCase().includes("thank")) {
-      response = "You're welcome! Is there anything else you'd like to know?";
-    } else if (userMessage.toLowerCase().includes("who are you")) {
-      response = "I'm an AI assistant designed to be helpful, harmless, and honest!";
-    }
+    const response =
+      overrideResponse ??
+      "Hi there! I can only perform fixed actions for now. Please choose one of the buttons below.";
 
     setTimeout(() => {
       setIsTyping(false);
       setMessages((prev) => [...prev, { text: response, isUser: false }]);
-    }, 1500);
+    }, 600);
   };
 
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
+  const handleConfirmNavigation = () => {
+    if (!pendingIntent) return;
+    navigate(pendingIntent.route);
+    setPendingIntent(null);
+  };
 
-    if (input.trim() === "") return;
-
-    const userMessage = input;
+  const handlePresetClick = (text: string) => {
+    const userMessage = text;
     setMessages((prev) => [...prev, { text: userMessage, isUser: true }]);
-    setInput("");
+
+    const intent = parseNavigationIntent(userMessage);
+
+    if (intent) {
+      setPendingIntent(intent);
+      setConfirmOpen(true);
+      simulateResponse(userMessage, `I can help with that. Would you like me to navigate to the ${intent.label}?`);
+      return;
+    }
 
     simulateResponse(userMessage);
   };
@@ -84,7 +118,7 @@ export function AIMessageBar({ title = "AI Assistant", description }: AIMessageB
             </div>
             <h3 className="mb-1 text-lg font-medium text-foreground">How can I help you today?</h3>
             <p className="max-w-xs text-sm text-muted-foreground">
-              Ask me anything and I'll do my best to assist you!
+              Choose one of the actions below to keep the assistant working reliably.
             </p>
           </div>
         ) : (
@@ -120,34 +154,40 @@ export function AIMessageBar({ title = "AI Assistant", description }: AIMessageB
         )}
       </div>
 
-      <form onSubmit={handleSubmit} className="border-t border-white/[0.06] px-4 py-3">
-        <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-white/[0.03] px-3 py-1 transition-all duration-200 focus-within:border-primary/30 focus-within:bg-white/[0.05]">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1 bg-transparent py-2 text-sm text-foreground outline-none placeholder:text-muted-foreground/50"
-          />
-          <button
-            type="submit"
-            disabled={input.trim() === ""}
-            className={`rounded-lg p-2 transition-colors ${
-              input.trim() === ""
-                ? "text-muted-foreground/30"
-                : "bg-primary text-primary-foreground hover:bg-primary/90"
-            }`}
-          >
-            <Send className="h-4 w-4" />
-          </button>
+      <div className="space-y-3 border-t border-white/[0.06] px-4 py-4">
+        <p className="text-sm text-muted-foreground">Choose one of the fixed actions below:</p>
+        <div className="grid gap-2 sm:grid-cols-2">
+          {(isSignedIn ? PRESET_QUERIES_AUTHENTICATED : PRESET_QUERIES_ANONYMOUS).map((item) => (
+            <button
+              key={item.text}
+              type="button"
+              onClick={() => handlePresetClick(item.text)}
+              className="rounded-2xl border border-white/[0.08] bg-white/[0.04] px-4 py-3 text-left text-sm text-foreground transition-all duration-200 hover:border-primary/30 hover:bg-white/[0.08]"
+            >
+              {item.label}
+            </button>
+          ))}
         </div>
-      </form>
+      </div>
+
+      <AlertDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Confirm navigation"
+        description={
+          pendingIntent
+            ? `I found a matching page for your request. Navigate to the ${pendingIntent.label}?`
+            : 'Do you want to proceed?'
+        }
+        confirmLabel="Yes, go there"
+        onConfirm={handleConfirmNavigation}
+      />
     </div>
   );
 }
 
 
-export function FloatingAiAssistant({ title, description }: AIMessageBarProps) {
+export function FloatingAiAssistant({ title, description, isSignedIn }: AIMessageBarProps) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -157,7 +197,7 @@ export function FloatingAiAssistant({ title, description }: AIMessageBarProps) {
           className="w-[calc(100vw-2rem)] h-[480px] animate-fade-up sm:w-[360px] sm:h-[520px] md:w-[400px]"
           style={{ animationDuration: "0.25s" }}
         >
-          <AIMessageBar title={title} description={description} />
+          <AIMessageBar title={title} description={description} isSignedIn={isSignedIn} />
         </div>
       )}
 
