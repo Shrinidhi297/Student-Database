@@ -1,10 +1,12 @@
+import { createPortal } from 'react-dom';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { FileJson, FileSpreadsheet, FileText, LogOut, Users } from 'lucide-react';
+import { LogOut, Users } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { utils, write } from 'xlsx';
 import { AiSearch } from '@/components/ai-search';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -62,6 +64,33 @@ function exportToJSON(students: Student[]) {
   URL.revokeObjectURL(url);
 }
 
+function exportToExcel(students: Student[]) {
+  const headers = [
+    'USN', 'First Name', 'Last Name', 'Email', 'Phone', 'Department',
+    'Semester', 'Status', 'Grade Level', 'Attendance', 'Marks', 'GPA',
+    'Enrollment Date', 'Notes',
+  ];
+
+  const rows = students.map((s) => [
+    s.usn ?? '', s.first_name, s.last_name, s.email ?? '', s.phone ?? '',
+    s.department ?? '', s.semester ?? '', s.status, s.grade_level ?? '',
+    s.attendance != null ? `${s.attendance}%` : '', s.marks ?? '', s.gpa ?? '',
+    format(new Date(s.enrollment_date), 'yyyy-MM-dd'), s.notes ?? '',
+  ]);
+
+  const worksheet = utils.aoa_to_sheet([headers, ...rows]);
+  const workbook = utils.book_new();
+  utils.book_append_sheet(workbook, worksheet, 'Students');
+  const excelBuffer = write(workbook, { bookType: 'xlsx', type: 'array' });
+  const blob = new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `students_${format(new Date(), 'yyyy-MM-dd')}.xlsx`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 function exportToPDF(students: Student[]) {
   const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
 
@@ -105,11 +134,239 @@ function exportToPDF(students: Student[]) {
   doc.save(`students_${format(new Date(), 'yyyy-MM-dd')}.pdf`);
 }
 
+type ExportFormat = 'csv' | 'json' | 'excel' | 'pdf';
+
+type ExportFilters = {
+  format: ExportFormat;
+  dateFrom: string;
+  dateTo: string;
+  attendanceMin: string;
+  attendanceMax: string;
+  marksMin: string;
+  marksMax: string;
+  gpaMin: string;
+  gpaMax: string;
+  gradeMin: string;
+  gradeMax: string;
+};
+
+const defaultExportFilters: ExportFilters = {
+  format: 'csv',
+  dateFrom: '',
+  dateTo: '',
+  attendanceMin: '',
+  attendanceMax: '',
+  marksMin: '',
+  marksMax: '',
+  gpaMin: '',
+  gpaMax: '',
+  gradeMin: '',
+  gradeMax: '',
+};
+
+function parseGradeLevel(value: string | null) {
+  if (!value) return null;
+  const match = value.match(/\d+(?:\.\d+)?/);
+  return match ? Number(match[0]) : null;
+}
+
+function filterStudentsForExport(students: Student[], filters: ExportFilters) {
+  return students.filter((student) => {
+    const enrolled = new Date(student.enrollment_date);
+    if (filters.dateFrom) {
+      const from = new Date(filters.dateFrom);
+      if (enrolled < from) return false;
+    }
+    if (filters.dateTo) {
+      const to = new Date(filters.dateTo);
+      to.setHours(23, 59, 59, 999);
+      if (enrolled > to) return false;
+    }
+    if (filters.attendanceMin && (student.attendance ?? 0) < Number(filters.attendanceMin)) return false;
+    if (filters.attendanceMax && (student.attendance ?? 0) > Number(filters.attendanceMax)) return false;
+    if (filters.marksMin && (student.marks ?? 0) < Number(filters.marksMin)) return false;
+    if (filters.marksMax && (student.marks ?? 0) > Number(filters.marksMax)) return false;
+    if (filters.gpaMin && (student.gpa ?? 0) < Number(filters.gpaMin)) return false;
+    if (filters.gpaMax && (student.gpa ?? 0) > Number(filters.gpaMax)) return false;
+
+    const gradeValue = parseGradeLevel(student.grade_level);
+    if (filters.gradeMin && gradeValue != null && gradeValue < Number(filters.gradeMin)) return false;
+    if (filters.gradeMax && gradeValue != null && gradeValue > Number(filters.gradeMax)) return false;
+    if ((filters.gradeMin || filters.gradeMax) && gradeValue == null) return false;
+
+    return true;
+  });
+}
+
+function ExportDialog({
+  open,
+  filters,
+  onChange,
+  onClose,
+  onExport,
+}: {
+  open: boolean;
+  filters: ExportFilters;
+  onChange: (value: Partial<ExportFilters>) => void;
+  onClose: () => void;
+  onExport: () => void;
+}) {
+  if (!open) return null;
+
+  return createPortal(
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-slate-950/80 backdrop-blur-2xl"
+        onClick={onClose}
+      />
+      <div className="glass-strong relative z-10 w-full max-w-2xl rounded-3xl border border-white/10 p-6 shadow-[0_32px_80px_rgba(0,0,0,0.65)] animate-scale-in">
+        <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h2 className="text-xl font-semibold text-slate-100">Export filtered student data</h2>
+            <p className="text-sm text-slate-400">Pick the export format and optional ranges before downloading.</p>
+          </div>
+          <Button variant="outline" size="sm" onClick={onClose}>Close</Button>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Export format</span>
+            <select
+              value={filters.format}
+              onChange={(event) => onChange({ format: event.target.value as ExportFormat })}
+              className="glass-input h-12 w-full appearance-none bg-slate-950/20 text-slate-100"
+            >
+              <option value="csv">CSV</option>
+              <option value="json">JSON</option>
+              <option value="excel">Excel</option>
+              <option value="pdf">PDF</option>
+            </select>
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Enrollment date from</span>
+            <input
+              type="date"
+              value={filters.dateFrom}
+              onChange={(event) => onChange({ dateFrom: event.target.value })}
+              className="glass-input h-12 w-full text-slate-100"
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Enrollment date to</span>
+            <input
+              type="date"
+              value={filters.dateTo}
+              onChange={(event) => onChange({ dateTo: event.target.value })}
+              className="glass-input h-12 w-full text-slate-100"
+            />
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Attendance range</span>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="Min"
+                value={filters.attendanceMin}
+                onChange={(event) => onChange({ attendanceMin: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+              <input
+                type="number"
+                min="0"
+                max="100"
+                placeholder="Max"
+                value={filters.attendanceMax}
+                onChange={(event) => onChange({ attendanceMax: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+            </div>
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Marks range</span>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                min="0"
+                placeholder="Min"
+                value={filters.marksMin}
+                onChange={(event) => onChange({ marksMin: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+              <input
+                type="number"
+                min="0"
+                placeholder="Max"
+                value={filters.marksMax}
+                onChange={(event) => onChange({ marksMax: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+            </div>
+          </label>
+          <label className="flex flex-col gap-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">GPA range</span>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Min"
+                value={filters.gpaMin}
+                onChange={(event) => onChange({ gpaMin: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="Max"
+                value={filters.gpaMax}
+                onChange={(event) => onChange({ gpaMax: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+            </div>
+          </label>
+          <label className="flex flex-col gap-2 sm:col-span-2">
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Grade range</span>
+            <div className="grid grid-cols-2 gap-2">
+              <input
+                type="number"
+                min="0"
+                placeholder="From"
+                value={filters.gradeMin}
+                onChange={(event) => onChange({ gradeMin: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+              <input
+                type="number"
+                min="0"
+                placeholder="To"
+                value={filters.gradeMax}
+                onChange={(event) => onChange({ gradeMax: event.target.value })}
+                className="glass-input h-12 w-full text-slate-100"
+              />
+            </div>
+          </label>
+        </div>
+
+        <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-end">
+          <Button variant="outline" size="sm" onClick={onClose}>Cancel</Button>
+          <Button size="sm" onClick={onExport}>Export now</Button>
+        </div>
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export function StudentsListPage() {
   const [session, setSession] = useState<Session | null>(null);
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSignOutConfirm, setShowSignOutConfirm] = useState(false);
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFilters, setExportFilters] = useState<ExportFilters>(defaultExportFilters);
   const [aiFilters, setAiFilters] = useState<AiSearchFilters | null>(null);
   const [aiResults, setAiResults] = useState<Student[] | null>(null);
   const [aiSearching, setAiSearching] = useState(false);
@@ -300,31 +557,32 @@ export function StudentsListPage() {
           <div className="flex gap-1 sm:gap-2">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => exportToCSV(displayStudents)} disabled={displayStudents.length === 0} className="min-h-[40px] sm:min-h-0">
-                  <FileSpreadsheet className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Export CSV</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setExportDialogOpen(true)}
+                  disabled={displayStudents.length === 0}
+                  className="min-h-[40px] sm:min-h-0"
+                >
+                  Export
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Export as CSV file</TooltipContent>
+              <TooltipContent side="bottom">Open export menu</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => exportToJSON(displayStudents)} disabled={displayStudents.length === 0} className="min-h-[40px] sm:min-h-0">
-                  <FileJson className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Export JSON</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Export as JSON file</TooltipContent>
-            </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" onClick={() => exportToPDF(displayStudents)} disabled={displayStudents.length === 0} className="min-h-[40px] sm:min-h-0">
-                  <FileText className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  <span className="hidden sm:inline">Export PDF</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">Export as PDF document</TooltipContent>
-            </Tooltip>
+            <ExportDialog
+              open={exportDialogOpen}
+              filters={exportFilters}
+              onClose={() => setExportDialogOpen(false)}
+              onChange={(value) => setExportFilters((prev) => ({ ...prev, ...value }))}
+              onExport={() => {
+                const studentsToExport = filterStudentsForExport(displayStudents, exportFilters);
+                if (exportFilters.format === 'csv') exportToCSV(studentsToExport);
+                if (exportFilters.format === 'json') exportToJSON(studentsToExport);
+                if (exportFilters.format === 'excel') exportToExcel(studentsToExport);
+                if (exportFilters.format === 'pdf') exportToPDF(studentsToExport);
+                setExportDialogOpen(false);
+              }}
+            />
           </div>
         </section>
 

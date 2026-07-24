@@ -7,18 +7,22 @@ type ButtonSize = 'sm' | 'default' | 'lg' | 'icon';
 
 const variantClasses: Record<ButtonVariant, string> = {
   default:
-    'bg-primary/90 text-primary-foreground shadow-[0_12px_32px_-18px_rgba(128,101,255,0.6)] hover:bg-primary backdrop-blur-xl border border-white/10',
-  secondary: 'glass-strong text-foreground hover:bg-white/10',
-  outline: 'glass text-foreground hover:bg-white/8',
-  ghost: 'text-foreground hover:bg-white/6',
-  destructive: 'bg-destructive/90 text-destructive-foreground hover:bg-destructive backdrop-blur-xl border border-white/10',
-  success: 'bg-success/90 text-success-foreground hover:bg-success backdrop-blur-xl border border-white/10',
+    'bg-primary/90 text-primary-foreground shadow-[0_18px_48px_-24px_rgba(128,101,255,0.7)] hover:bg-primary backdrop-blur-xl border border-white/10',
+  secondary:
+    'glass-strong text-foreground hover:bg-white/12 border border-white/10 shadow-[0_16px_40px_-28px_rgba(0,0,0,0.35)]',
+  outline:
+    'glass text-foreground hover:bg-white/10 border border-white/10 shadow-[0_12px_24px_-24px_rgba(0,0,0,0.35)]',
+  ghost: 'text-foreground hover:bg-white/8',
+  destructive:
+    'bg-destructive/90 text-destructive-foreground hover:bg-destructive backdrop-blur-xl border border-white/10',
+  success:
+    'bg-success/90 text-success-foreground hover:bg-success backdrop-blur-xl border border-white/10',
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: 'h-9 rounded-full px-3 text-sm',
-  default: 'h-10 rounded-full px-4 py-2',
-  lg: 'h-11 rounded-full px-6 text-base',
+  sm: 'h-10 rounded-full px-4 text-sm',
+  default: 'h-11 rounded-full px-5 py-2.5 text-sm',
+  lg: 'h-12 rounded-full px-6 text-base',
   icon: 'h-10 w-10 rounded-full',
 };
 

@@ -10,7 +10,7 @@ export function Select({ className, options, placeholder, children, ...props }: 
   return (
     <select
       className={cn(
-        'glass-input flex h-10 w-full rounded-xl px-3 py-2 text-sm text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200',
+        'glass-input appearance-none flex h-10 w-full rounded-xl px-3 py-2 text-sm text-foreground focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 transition-all duration-200',
         className,
       )}
       {...props}
