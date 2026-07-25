@@ -7,7 +7,7 @@ export type Student = {
   last_name: string;
   email: string | null;
   phone: string | null;
-  grade_level: string | null;
+  year: string | null;
   status: StudentStatus;
   enrollment_date: string;
   gpa: number | null;

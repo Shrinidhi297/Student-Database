@@ -13,7 +13,7 @@ export type AiSearchFilters = {
   last_name?: string | FilterCondition;
   email?: string | FilterCondition;
   phone?: string | FilterCondition;
-  grade_level?: string | FilterCondition;
+  year?: string | FilterCondition;
   status?: string | FilterCondition;
   enrollment_date?: string | FilterCondition;
   gpa?: FilterCondition;
@@ -49,7 +49,7 @@ const filtersSchema = z.object({
   last_name: fieldSchema.optional(),
   email: fieldSchema.optional(),
   phone: fieldSchema.optional(),
-  grade_level: fieldSchema.optional(),
+  year: fieldSchema.optional(),
   status: fieldSchema.optional(),
   enrollment_date: fieldSchema.optional(),
   gpa: conditionSchema.optional(),
@@ -81,7 +81,7 @@ const AVAILABLE_FIELDS = [
   { name: 'last_name', type: 'string', description: 'Student last name' },
   { name: 'email', type: 'string', description: 'Email address' },
   { name: 'phone', type: 'string', description: 'Phone number' },
-  { name: 'grade_level', type: 'string', description: 'Grade or class level (e.g. Grade 10, Freshman, etc.)' },
+  { name: 'year', type: 'string', description: 'Year or class level (e.g. Year 10, Freshman, etc.)' },
   { name: 'status', type: 'string', description: 'Enrollment status: active, inactive, or graduated' },
   { name: 'enrollment_date', type: 'string', description: 'Date of enrollment (YYYY-MM-DD format)' },
   { name: 'gpa', type: 'number', description: 'CGPA or grade point average (0.0 – 10.0)' },
@@ -356,9 +356,10 @@ export function parseLocalFallback(query: string): AiSearchFilters {
   }
 
   // Grade level filters
+  // Year/class filters (e.g. "year 10", "grade 10")
   const gradeMatch = q.match(/(?:grade|class|level)\s*(\d+)/i);
   if (gradeMatch) {
-    filters.grade_level = { operator: 'contains', value: gradeMatch[1] };
+    filters.year = { operator: 'contains', value: gradeMatch[1] };
   }
 
   // GPA/CGPA filters — supports "cgpa" and "gpa", range queries, and negation

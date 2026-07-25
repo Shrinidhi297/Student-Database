@@ -10,7 +10,7 @@ create table if not exists public.students (
   last_name text not null,
   email text,
   phone text,
-  grade_level text,
+  year text,
   status text not null default 'active' check (status in ('active', 'inactive', 'graduated')),
   enrollment_date date not null,
   gpa numeric(4,2),

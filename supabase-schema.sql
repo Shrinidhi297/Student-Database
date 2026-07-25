@@ -29,7 +29,7 @@ create table if not exists public.students (
   last_name text not null,
   email text,
   phone text,
-  grade_level text,
+  year text,
   status student_status not null default 'active',
   enrollment_date date not null default current_date,
   gpa numeric(4,2),

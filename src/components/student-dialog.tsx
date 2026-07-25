@@ -16,7 +16,7 @@ const emptyValues: StudentFormInput = {
   last_name: '',
   email: '',
   phone: '',
-  grade_level: '',
+  year: '',
   status: 'active',
   enrollment_date: today,
   gpa: '',
@@ -57,7 +57,7 @@ export function StudentDialog({
             last_name: initialStudent.last_name,
             email: initialStudent.email ?? '',
             phone: initialStudent.phone ?? '',
-            grade_level: initialStudent.grade_level ?? '',
+            year: typeof initialStudent.year === 'string' ? parseInt(initialStudent.year.replace(/\D/g, ''), 10) || '' : initialStudent.year ?? '',
             status: initialStudent.status,
             enrollment_date: initialStudent.enrollment_date,
             gpa: initialStudent.gpa ?? '',
@@ -112,8 +112,8 @@ export function StudentDialog({
           </div>
 
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 sm:gap-4">
-            <Field label="Grade level" error={form.formState.errors.grade_level?.message}>
-              <Input placeholder="Grade 11" {...form.register('grade_level')} />
+            <Field label="Year" error={form.formState.errors.year?.message}>
+              <Input type="number" min="1" max="4" placeholder="1" {...form.register('year')} />
             </Field>
             <Field label="Semester" error={form.formState.errors.semester?.message as string | undefined}>
               <Input type="number" min="1" max="8" placeholder="3" {...form.register('semester')} />

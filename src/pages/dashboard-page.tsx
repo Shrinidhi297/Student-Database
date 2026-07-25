@@ -191,14 +191,14 @@ export function DashboardPage() {
       return aiResults;
     }
 
-    const students = studentsQuery.data ?? [];
+      const students = studentsQuery.data ?? [];
     const query = search.trim().toLowerCase();
 
     return students.filter((student) => {
       const matchesStatus = statusFilter === 'all' || student.status === statusFilter;
       const matchesSearch =
         !query ||
-        [student.first_name, student.last_name, student.email ?? '', student.grade_level ?? '']
+        [student.first_name, student.last_name, student.email ?? '', student.year ?? '']
           .join(' ')
           .toLowerCase()
           .includes(query);
@@ -230,7 +230,7 @@ export function DashboardPage() {
         last_name: values.last_name.trim(),
         email: values.email?.trim() || null,
         phone: values.phone?.trim() || null,
-        grade_level: values.grade_level?.trim() || null,
+        year: values.year?.trim() || null,
         status: values.status,
         enrollment_date: values.enrollment_date,
         gpa: values.gpa ?? null,
@@ -304,7 +304,7 @@ export function DashboardPage() {
       const headers = parseCSVLine(lines[0]).map((h) => h.toLowerCase().replace(/[\s-]+/g, '_'));
       const columnMap: Record<string, string> = {
         first_name: 'first_name', last_name: 'last_name', email: 'email', phone: 'phone',
-        grade_level: 'grade_level', grade: 'grade_level', status: 'status',
+        year: 'year', grade: 'year', status: 'status',
         enrollment_date: 'enrollment_date', enrolled: 'enrollment_date', date: 'enrollment_date',
         gpa: 'gpa', cgpa: 'gpa', notes: 'notes', usn: 'usn', department: 'department', dept: 'department',
         semester: 'semester', sem: 'semester', attendance: 'attendance', attend: 'attendance',
@@ -359,7 +359,7 @@ export function DashboardPage() {
         last_name: String(r.last_name).trim(),
         email: (r.email as string)?.trim() || null,
         phone: (r.phone as string)?.trim() || null,
-        grade_level: (r.grade_level as string)?.trim() || null,
+        year: (r.year as string)?.trim() || null,
         status: r.status || 'active',
         enrollment_date: String(r.enrollment_date),
         gpa: (r.gpa as number) ?? null,
@@ -561,10 +561,10 @@ export function DashboardPage() {
           <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
+                <Input
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Filter by name, email, or grade..."
+                placeholder="Filter by name, email, or year..."
                 className="pl-9"
               />
             </div>
@@ -588,7 +588,7 @@ export function DashboardPage() {
                 <TableRow>
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
-                  <TableHead>Grade</TableHead>
+                  <TableHead>Year</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>GPA</TableHead>
                   <TableHead>Enrolled</TableHead>
@@ -625,7 +625,7 @@ export function DashboardPage() {
                         </div>
                       </TableCell>
                       <TableCell>{student.email || '\u2014'}</TableCell>
-                      <TableCell>{student.grade_level || '\u2014'}</TableCell>
+                      <TableCell>{student.year || '\u2014'}</TableCell>
                       <TableCell>
                         <Badge variant={statusStyles[student.status]}>{student.status}</Badge>
                       </TableCell>

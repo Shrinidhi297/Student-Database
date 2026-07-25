@@ -77,7 +77,7 @@ export function formatFilterBadge(field: string, value: unknown): string {
     last_name: 'Last Name',
     email: 'Email',
     phone: 'Phone',
-    grade_level: 'Grade',
+    year: 'Year',
     status: 'Status',
     enrollment_date: 'Enrolled',
     gpa: 'GPA',

@@ -12,11 +12,20 @@ export const studentSchema = z.object({
   last_name: z.string().trim().min(1, 'Last name is required.'),
   email: z.string().trim().email('Enter a valid email address.').optional().or(z.literal('')),
   phone: z.string().trim().optional().or(z.literal('')),
-  grade_level: z.string().trim().optional().or(z.literal('')),
+  year: z
+    .union([z.string(), z.number(), z.null()])
+    .optional()
+    .transform((value) => {
+      if (value === '' || value === undefined || value === null) return '';
+      const parsed = typeof value === 'string' ? parseInt(value.replace(/\D/g, ''), 10) : Number(value);
+      if (!Number.isFinite(parsed) || isNaN(parsed)) return '';
+      const capped = Math.min(Math.max(Math.floor(parsed), 1), 4);
+      return `Year ${capped}`;
+    }),
   status: z.enum(['active', 'inactive', 'graduated']),
   enrollment_date: z.string().min(1, 'Enrollment date is required.'),
   gpa: z
-    .union([z.string(), z.number()])
+    .union([z.string(), z.number(), z.null()])
     .optional()
     .transform((value) => {
       if (value === '' || value === undefined || value === null) {
@@ -30,7 +39,7 @@ export const studentSchema = z.object({
   usn: z.string().trim().optional().or(z.literal('')),
   department: z.string().trim().optional().or(z.literal('')),
   semester: z
-    .union([z.string(), z.number()])
+    .union([z.string(), z.number(), z.null()])
     .optional()
     .transform((value) => {
       if (value === '' || value === undefined || value === null) {
@@ -41,7 +50,7 @@ export const studentSchema = z.object({
     })
     .refine((value) => value === null || (value >= 1 && value <= 8), 'Semester must be between 1 and 8.'),
   attendance: z
-    .union([z.string(), z.number()])
+    .union([z.string(), z.number(), z.null()])
     .optional()
     .transform((value) => {
       if (value === '' || value === undefined || value === null) {
@@ -52,7 +61,7 @@ export const studentSchema = z.object({
     })
     .refine((value) => value === null || (value >= 0 && value <= 100), 'Attendance must be between 0 and 100.'),
   marks: z
-    .union([z.string(), z.number()])
+    .union([z.string(), z.number(), z.null()])
     .optional()
     .transform((value) => {
       if (value === '' || value === undefined || value === null) {

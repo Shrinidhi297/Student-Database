@@ -31,13 +31,13 @@ const statusStyles: Record<StudentStatus, 'default' | 'secondary' | 'success' | 
 function exportToCSV(students: Student[]) {
   const headers = [
     'USN', 'First Name', 'Last Name', 'Email', 'Phone', 'Department',
-    'Semester', 'Status', 'Grade Level', 'Attendance', 'Marks', 'GPA',
+    'Semester', 'Status', 'Year', 'Attendance', 'Marks', 'GPA',
     'Enrollment Date', 'Notes',
   ];
 
   const rows = students.map((s) => [
     s.usn ?? '', s.first_name, s.last_name, s.email ?? '', s.phone ?? '',
-    s.department ?? '', s.semester ?? '', s.status, s.grade_level ?? '',
+    s.department ?? '', s.semester ?? '', s.status, s.year ?? '',
     s.attendance ?? '', s.marks ?? '', s.gpa ?? '',
     format(new Date(s.enrollment_date), 'yyyy-MM-dd'), s.notes ?? '',
   ]);
@@ -67,13 +67,13 @@ function exportToJSON(students: Student[]) {
 function exportToExcel(students: Student[]) {
   const headers = [
     'USN', 'First Name', 'Last Name', 'Email', 'Phone', 'Department',
-    'Semester', 'Status', 'Grade Level', 'Attendance', 'Marks', 'GPA',
+    'Semester', 'Status', 'Year', 'Attendance', 'Marks', 'GPA',
     'Enrollment Date', 'Notes',
   ];
 
   const rows = students.map((s) => [
     s.usn ?? '', s.first_name, s.last_name, s.email ?? '', s.phone ?? '',
-    s.department ?? '', s.semester ?? '', s.status, s.grade_level ?? '',
+    s.department ?? '', s.semester ?? '', s.status, s.year ?? '',
     s.attendance != null ? `${s.attendance}%` : '', s.marks ?? '', s.gpa ?? '',
     format(new Date(s.enrollment_date), 'yyyy-MM-dd'), s.notes ?? '',
   ]);
@@ -102,12 +102,12 @@ function exportToPDF(students: Student[]) {
 
   const headers = [
     'USN', 'First Name', 'Last Name', 'Email', 'Phone', 'Department',
-    'Sem', 'Status', 'Grade', 'Attend.', 'Marks', 'GPA', 'Enrolled',
+    'Sem', 'Status', 'Year', 'Attend.', 'Marks', 'GPA', 'Enrolled',
   ];
 
   const body = students.map((s) => [
     s.usn ?? '', s.first_name, s.last_name, s.email ?? '', s.phone ?? '',
-    s.department ?? '', s.semester ?? '', s.status, s.grade_level ?? '',
+    s.department ?? '', s.semester ?? '', s.status, s.year ?? '',
     s.attendance != null ? `${s.attendance}%` : '', s.marks ?? '', s.gpa ?? '',
     format(new Date(s.enrollment_date), 'MMM d, yyyy'),
   ]);
@@ -146,8 +146,8 @@ type ExportFilters = {
   marksMax: string;
   gpaMin: string;
   gpaMax: string;
-  gradeMin: string;
-  gradeMax: string;
+  yearMin: string;
+  yearMax: string;
 };
 
 const defaultExportFilters: ExportFilters = {
@@ -160,8 +160,8 @@ const defaultExportFilters: ExportFilters = {
   marksMax: '',
   gpaMin: '',
   gpaMax: '',
-  gradeMin: '',
-  gradeMax: '',
+  yearMin: '',
+  yearMax: '',
 };
 
 function parseGradeLevel(value: string | null) {
@@ -189,10 +189,10 @@ function filterStudentsForExport(students: Student[], filters: ExportFilters) {
     if (filters.gpaMin && (student.gpa ?? 0) < Number(filters.gpaMin)) return false;
     if (filters.gpaMax && (student.gpa ?? 0) > Number(filters.gpaMax)) return false;
 
-    const gradeValue = parseGradeLevel(student.grade_level);
-    if (filters.gradeMin && gradeValue != null && gradeValue < Number(filters.gradeMin)) return false;
-    if (filters.gradeMax && gradeValue != null && gradeValue > Number(filters.gradeMax)) return false;
-    if ((filters.gradeMin || filters.gradeMax) && gradeValue == null) return false;
+      const gradeValue = parseGradeLevel(student.year);
+      if (filters.yearMin && gradeValue != null && gradeValue < Number(filters.yearMin)) return false;
+      if (filters.yearMax && gradeValue != null && gradeValue > Number(filters.yearMax)) return false;
+      if ((filters.yearMin || filters.yearMax) && gradeValue == null) return false;
 
     return true;
   });
@@ -328,22 +328,22 @@ function ExportDialog({
             </div>
           </label>
           <label className="flex flex-col gap-2 sm:col-span-2">
-            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Grade range</span>
+            <span className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">Year range</span>
             <div className="grid grid-cols-2 gap-2">
               <input
                 type="number"
                 min="0"
                 placeholder="From"
-                value={filters.gradeMin}
-                onChange={(event) => onChange({ gradeMin: event.target.value })}
+                value={filters.yearMin}
+                onChange={(event) => onChange({ yearMin: event.target.value })}
                 className="glass-input h-12 w-full text-slate-100"
               />
               <input
                 type="number"
                 min="0"
                 placeholder="To"
-                value={filters.gradeMax}
-                onChange={(event) => onChange({ gradeMax: event.target.value })}
+                value={filters.yearMax}
+                onChange={(event) => onChange({ yearMax: event.target.value })}
                 className="glass-input h-12 w-full text-slate-100"
               />
             </div>
@@ -635,7 +635,7 @@ export function StudentsListPage() {
                       <TableHead>Department</TableHead>
                       <TableHead>Sem</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead>Grade</TableHead>
+                      <TableHead>Year</TableHead>
                       <TableHead>Attendance</TableHead>
                       <TableHead>Marks</TableHead>
                       <TableHead>GPA</TableHead>
@@ -671,7 +671,7 @@ export function StudentsListPage() {
                           <TableCell>
                             <Badge variant={statusStyles[student.status]}>{student.status}</Badge>
                           </TableCell>
-                          <TableCell>{student.grade_level || '\u2014'}</TableCell>
+                          <TableCell>{student.year || '\u2014'}</TableCell>
                           <TableCell>{student.attendance ?? '\u2014'}{student.attendance != null ? '%' : ''}</TableCell>
                           <TableCell>{student.marks ?? '\u2014'}</TableCell>
                           <TableCell>{student.gpa ?? '\u2014'}</TableCell>
